@@ -12,33 +12,29 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout source
+      - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Setup Flutter 3.47.0
+      - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: 3.47.0
           channel: stable
           cache: true
 
-      - name: Show Flutter version
+      - name: Check Flutter
         run: flutter --version
 
       - name: Generate Android project
-        run: |
-          flutter create \
-            --platforms=android \
-            --org com.naqshkaar \
-            .
+        run: flutter create --platforms=android --org com.naqshkaar .
 
       - name: Get dependencies
         run: flutter pub get
 
-      - name: Analyze project
+      - name: Analyze
         run: flutter analyze
 
-      - name: Build release APK
+      - name: Build APK
         run: flutter build apk --release
 
       - name: Build Play Store AAB
