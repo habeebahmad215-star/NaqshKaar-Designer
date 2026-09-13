@@ -11,18 +11,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
+      # --------------------------------------------------
+      # 1. Get source code
+      # --------------------------------------------------
       - name: Checkout repository
         uses: actions/checkout@v6
 
+
+      # --------------------------------------------------
+      # 2. Install Flutter
+      # --------------------------------------------------
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
 
-      - name: Show Flutter version
+
+      # --------------------------------------------------
+      # 3. Show Flutter version
+      # --------------------------------------------------
+      - name: Flutter version
         run: flutter --version
 
+
+      # --------------------------------------------------
+      # 4. Generate Android project
+      # --------------------------------------------------
       - name: Generate Android project
         run: |
           flutter create \
@@ -30,21 +46,102 @@ jobs:
             --org com.naqshkaar \
             .
 
+
+      # --------------------------------------------------
+      # 5. Get Flutter packages
+      # --------------------------------------------------
       - name: Get dependencies
         run: flutter pub get
 
+
+      # --------------------------------------------------
+      # 6. Fix old image_gallery_saver namespace
+      # --------------------------------------------------
+      - name: Fix image_gallery_saver Android namespace
+        shell: bash
+        run: |
+          python3 <<'PY'
+          import pathlib
+          import re
+
+          base = pathlib.Path.home() / ".pub-cache" / "hosted" / "pub.dev"
+
+          files = list(
+              base.glob("image_gallery_saver-*/android/build.gradle")
+          )
+
+          if not files:
+              print("image_gallery_saver package not found.")
+              raise SystemExit(0)
+
+          for file in files:
+              text = file.read_text()
+
+              if "namespace" in text:
+                  print(f"Namespace already exists: {file}")
+                  continue
+
+              match = re.search(
+                  r'android\s*\{',
+                  text
+              )
+
+              if not match:
+                  print(f"Could not find android block: {file}")
+                  continue
+
+              namespace = (
+                  'android {\\n'
+                  '    namespace "com.example.image_gallery_saver"'
+              )
+
+              text = (
+                  text[:match.start()]
+                  + namespace
+                  + text[match.end():]
+              )
+
+              file.write_text(text)
+
+              print(f"Namespace added: {file}")
+          PY
+
+
+      # --------------------------------------------------
+      # 7. Verify dependencies
+      # --------------------------------------------------
+      - name: Flutter analyze
+        run: flutter analyze
+        continue-on-error: true
+
+
+      # --------------------------------------------------
+      # 8. Build Debug APK
+      # --------------------------------------------------
       - name: Build Debug APK
         run: flutter build apk --debug
 
+
+      # --------------------------------------------------
+      # 9. Build Release AAB for Google Play Store
+      # --------------------------------------------------
       - name: Build Release AAB
         run: flutter build appbundle --release
 
+
+      # --------------------------------------------------
+      # 10. Upload Debug APK
+      # --------------------------------------------------
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
           name: NaqshKaar-Designer-APK
           path: build/app/outputs/flutter-apk/app-debug.apk
 
+
+      # --------------------------------------------------
+      # 11. Upload Play Store AAB
+      # --------------------------------------------------
       - name: Upload Play Store AAB
         uses: actions/upload-artifact@v4
         with:
