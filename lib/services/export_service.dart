@@ -1,10 +1,10 @@
 import 'dart:typed_data';
 import 'dart:ui' as ui;
+
 import 'package:flutter/rendering.dart';
+import 'package:gal/gal.dart';
 import 'package:image/image.dart' as img;
-import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
 class ExportService {
@@ -18,7 +18,9 @@ class ExportService {
             as RenderRepaintBoundary?;
 
     if (boundary == null) {
-      throw StateError('Canvas is not ready for export.');
+      throw StateError(
+        'Canvas is not ready for export.',
+      );
     }
 
     final ratio = targetWidth / logicalWidth;
@@ -34,7 +36,9 @@ class ExportService {
     image.dispose();
 
     if (data == null) {
-      throw StateError('Could not encode PNG.');
+      throw StateError(
+        'Could not encode PNG.',
+      );
     }
 
     return data.buffer.asUint8List();
@@ -47,7 +51,9 @@ class ExportService {
     final decoded = img.decodeImage(pngBytes);
 
     if (decoded == null) {
-      throw StateError('Could not decode rendered image.');
+      throw StateError(
+        'Could not decode rendered image.',
+      );
     }
 
     final jpg = img.encodeJpg(
@@ -58,37 +64,44 @@ class ExportService {
     return Uint8List.fromList(jpg);
   }
 
+  Future<void> _ensureGalleryAccess() async {
+    final hasAccess = await Gal.hasAccess();
+
+    if (hasAccess) {
+      return;
+    }
+
+    final granted = await Gal.requestAccess();
+
+    if (!granted) {
+      throw StateError(
+        'Gallery permission was denied.',
+      );
+    }
+  }
+
   Future<void> savePng(
     Uint8List bytes,
     String name,
   ) async {
-    final result = await ImageGallerySaver.saveImage(
+    await _ensureGalleryAccess();
+
+    await Gal.putImageBytes(
       bytes,
-      quality: 100,
       name: name,
     );
-
-    if (result is Map &&
-        result['isSuccess'] == false) {
-      throw StateError('Gallery save failed.');
-    }
   }
 
   Future<void> saveJpeg(
     Uint8List bytes,
     String name,
   ) async {
-    final result = await ImageGallerySaver.saveImage(
-      bytes,
-      quality: 100,
-      name: name,
-      isReturnImagePathOfIOS: true,
-    );
+    await _ensureGalleryAccess();
 
-    if (result is Map &&
-        result['isSuccess'] == false) {
-      throw StateError('Gallery save failed.');
-    }
+    await Gal.putImageBytes(
+      bytes,
+      name: name,
+    );
   }
 
   Future<void> sharePdf(
