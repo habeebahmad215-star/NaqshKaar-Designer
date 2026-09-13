@@ -8,37 +8,23 @@ on:
 
 jobs:
   build:
+    name: Build Android
     runs-on: ubuntu-latest
 
     steps:
-
-      # ==================================================
-      # 1. Checkout
-      # ==================================================
-      - name: Checkout repository
+      - name: Checkout source
         uses: actions/checkout@v6
 
-
-      # ==================================================
-      # 2. Flutter
-      # ==================================================
-      - name: Setup Flutter
+      - name: Setup Flutter 3.47.0
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: 3.47.0
           channel: stable
           cache: true
 
-
-      # ==================================================
-      # 3. Flutter version
-      # ==================================================
-      - name: Flutter version
+      - name: Show Flutter version
         run: flutter --version
 
-
-      # ==================================================
-      # 4. Generate Android project
-      # ==================================================
       - name: Generate Android project
         run: |
           flutter create \
@@ -46,194 +32,26 @@ jobs:
             --org com.naqshkaar \
             .
 
-
-      # ==================================================
-      # 5. Keep AGP 9 compatible with current Flutter
-      # ==================================================
-      - name: Configure Android Gradle compatibility
-        run: |
-          printf '\nandroid.newDsl=false\n' >> android/gradle.properties
-
-
-      # ==================================================
-      # 6. Replace old gallery package with modern Gal
-      # ==================================================
-      - name: Migrate gallery saving
-        shell: bash
-        run: |
-          python3 <<'PY'
-          from pathlib import Path
-
-          # -----------------------------------------------
-          # Update pubspec.yaml
-          # -----------------------------------------------
-          pubspec = Path("pubspec.yaml")
-          text = pubspec.read_text()
-
-          text = text.replace(
-              "  image_gallery_saver: ^2.0.3\n",
-              ""
-          )
-
-          if "  gal: ^2.3.3\n" not in text:
-              text = text.replace(
-                  "  image_picker: ^1.1.2\n",
-                  "  image_picker: ^1.1.2\n"
-                  "  gal: ^2.3.3\n"
-              )
-
-          pubspec.write_text(text)
-
-          # -----------------------------------------------
-          # Update export_service.dart
-          # -----------------------------------------------
-          export_file = Path(
-              "lib/services/export_service.dart"
-          )
-
-          code = export_file.read_text()
-
-          old_import = (
-              "import 'package:image_gallery_saver/"
-              "image_gallery_saver.dart';"
-          )
-
-          new_import = (
-              "import 'package:gal/gal.dart';"
-          )
-
-          code = code.replace(
-              old_import,
-              new_import
-          )
-
-          old_png = """    final result = await ImageGallerySaver.saveImage(
-      bytes,
-      quality: 100,
-      name: name,
-    );
-
-    if (result is Map &&
-        result['isSuccess'] == false) {
-      throw StateError('Gallery save failed.');
-    }"""
-
-          new_png = """    if (!await Gal.hasAccess()) {
-      final granted = await Gal.requestAccess();
-
-      if (!granted) {
-        throw StateError(
-          'Gallery permission was denied.',
-        );
-      }
-    }
-
-    await Gal.putImageBytes(
-      bytes,
-      name: name,
-    );"""
-
-          code = code.replace(
-              old_png,
-              new_png
-          )
-
-          old_jpg = """    final result = await ImageGallerySaver.saveImage(
-      bytes,
-      quality: 100,
-      name: name,
-      isReturnImagePathOfIOS: true,
-    );
-
-    if (result is Map &&
-        result['isSuccess'] == false) {
-      throw StateError('Gallery save failed.');
-    }"""
-
-          new_jpg = """    if (!await Gal.hasAccess()) {
-      final granted = await Gal.requestAccess();
-
-      if (!granted) {
-        throw StateError(
-          'Gallery permission was denied.',
-        );
-      }
-    }
-
-    await Gal.putImageBytes(
-      bytes,
-      name: name,
-    );"""
-
-          code = code.replace(
-              old_jpg,
-              new_jpg
-          )
-
-          export_file.write_text(code)
-
-          print("Gallery migration completed.")
-          PY
-
-
-      # ==================================================
-      # 7. Get packages
-      # ==================================================
       - name: Get dependencies
         run: flutter pub get
 
-
-      # ==================================================
-      # 8. Verify old package is completely gone
-      # ==================================================
-      - name: Verify gallery migration
-        run: |
-          if grep -R "image_gallery_saver" \
-            pubspec.yaml lib; then
-            echo "ERROR: old image_gallery_saver reference found."
-            exit 1
-          fi
-
-          echo "Old gallery package removed successfully."
-
-
-      # ==================================================
-      # 9. Analyze Dart/Flutter code
-      # ==================================================
-      - name: Flutter analyze
+      - name: Analyze project
         run: flutter analyze
-        continue-on-error: true
 
+      - name: Build release APK
+        run: flutter build apk --release
 
-      # ==================================================
-      # 10. Build Debug APK
-      # ==================================================
-      - name: Build Debug APK
-        run: flutter build apk --debug
-
-
-      # ==================================================
-      # 11. Build Release AAB
-      # ==================================================
       - name: Build Play Store AAB
         run: flutter build appbundle --release
 
-
-      # ==================================================
-      # 12. Upload APK
-      # ==================================================
-      - name: Upload Debug APK
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: NaqshKaar-Designer-APK
-          path: build/app/outputs/flutter-apk/app-debug.apk
+          path: build/app/outputs/flutter-apk/app-release.apk
 
-
-      # ==================================================
-      # 13. Upload AAB
-      # ==================================================
       - name: Upload Play Store AAB
         uses: actions/upload-artifact@v4
         with:
-          name: NaqshKaar-Designer-PlayStore-AAB
+          name: NaqshKaar-Designer-AAB
           path: build/app/outputs/bundle/release/app-release.aab
