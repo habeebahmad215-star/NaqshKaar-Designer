@@ -26,3 +26,13 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  fonts:
+    - family: Gulzar
+      fonts:
+        - asset: assets/fonts/Gulzar-Regular.ttf
+    - family: NotoNastaliqUrdu
+      fonts:
+        - asset: assets/fonts/NotoNastaliqUrdu-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/NotoNastaliqUrdu-Bold.ttf
+          weight: 700
