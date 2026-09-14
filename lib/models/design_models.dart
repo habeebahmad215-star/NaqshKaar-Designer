@@ -196,7 +196,7 @@ class DesignPage {
   Map<String, dynamic> toJson() => {
         'title': title,
         'size': size.toJson(),
-        'background': background.value,
+        'background': background.toARGB32(),
         'elements':
             elements.map((e) => e.toJson()).toList(),
       };
@@ -209,7 +209,7 @@ class DesignPage {
         ),
         background: Color(
           (json['background'] as num?)?.toInt() ??
-              Colors.white.value,
+              Colors.white.toARGB32(),
         ),
         elements: (json['elements'] is List)
             ? (json['elements'] as List)
