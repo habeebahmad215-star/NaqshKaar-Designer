@@ -59,6 +59,9 @@ jobs:
       - name: Remove generated default test
         run: rm -rf test
 
+      - name: Normalize generated compatibility issue
+        run: sed -i 's/Icons\.rotate_0_degrees_ccw_rounded/Icons.rotate_left_rounded/g' lib/screens/workspace_screen.dart
+
       - name: Analyze
         run: flutter analyze
 
