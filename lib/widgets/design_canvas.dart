@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../models/design_models.dart';
 import '../state/workspace_controller.dart';
+import 'layers_panel.dart';
 
 class DesignCanvas extends StatefulWidget {
   final WorkspaceController controller;
@@ -18,10 +19,40 @@ class _DesignCanvasState extends State<DesignCanvas> {
   @override
   Widget build(BuildContext context) {
     final page = controller.page;
-    return RepaintBoundary(key: widget.repaintKey, child: SizedBox(width: page.size.width, height: page.size.height, child: GestureDetector(
-      behavior: HitTestBehavior.opaque, onTap: () => controller.select(null),
-      child: DecoratedBox(decoration: BoxDecoration(color: page.background, boxShadow: const [BoxShadow(blurRadius: 22, spreadRadius: 1, offset: Offset(0, 8), color: Color(0x26000000))]), child: Stack(clipBehavior: Clip.none, children: [for (final e in page.elements) _element(e)])),
-    )));
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        RepaintBoundary(key: widget.repaintKey, child: SizedBox(width: page.size.width, height: page.size.height, child: GestureDetector(
+          behavior: HitTestBehavior.opaque, onTap: () => controller.select(null),
+          child: DecoratedBox(decoration: BoxDecoration(color: page.background, boxShadow: const [BoxShadow(blurRadius: 22, spreadRadius: 1, offset: Offset(0, 8), color: Color(0x26000000))]), child: Stack(clipBehavior: Clip.none, children: [for (final e in page.elements) _element(e)])),
+        ))),
+        Positioned(
+          top: -8,
+          right: -8,
+          child: Material(
+            color: Colors.white,
+            elevation: 4,
+            borderRadius: BorderRadius.circular(14),
+            child: IconButton(
+              tooltip: 'Layers',
+              onPressed: _layersSheet,
+              icon: const Icon(Icons.layers_rounded, color: Color(0xFF6D28D9)),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+  Future<void> _layersSheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => SizedBox(
+        height: MediaQuery.sizeOf(context).height * .72,
+        child: LayersPanel(controller: controller),
+      ),
+    );
   }
   List<BoxShadow> _shadows(DesignElement e) => e.shadowBlur <= 0 || e.shadowColor.a <= 0 ? const [] : [BoxShadow(color: e.shadowColor, blurRadius: e.shadowBlur, offset: Offset(e.shadowOffsetX, e.shadowOffsetY))];
   BoxDecoration _decoration(DesignElement e, {required bool selected, required bool isShape}) => BoxDecoration(
