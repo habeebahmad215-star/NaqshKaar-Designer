@@ -121,16 +121,22 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   Widget _buildCanvasArea() {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final availableWidth = (constraints.maxWidth - 28).clamp(120.0, double.infinity);
-        final availableHeight = (constraints.maxHeight - 28).clamp(120.0, double.infinity);
+        final availableWidth = (constraints.maxWidth - 28)
+            .clamp(120.0, double.infinity)
+            .toDouble();
+        final availableHeight = (constraints.maxHeight - 28)
+            .clamp(120.0, double.infinity)
+            .toDouble();
         final widthScale = availableWidth / controller.page.size.width;
         final heightScale = availableHeight / controller.page.size.height;
-        final fitScale = (widthScale < heightScale ? widthScale : heightScale).clamp(0.05, 1.0);
+        final fitScale = (widthScale < heightScale ? widthScale : heightScale)
+            .clamp(0.05, 1.0)
+            .toDouble();
 
         return AnimatedBuilder(
           animation: _transform,
           builder: (context, child) {
-            final zoom = _transform.value.getMaxScaleOnAxis().clamp(0.5, 4.0);
+            final zoom = _transform.value.getMaxScaleOnAxis().clamp(0.5, 4.0).toDouble();
             return Padding(
               padding: const EdgeInsets.all(14),
               child: Stack(
@@ -374,9 +380,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
 
   Future<void> _addText() async {
     final value = await _textDialog('Add Urdu Text', 'اپنا متن یہاں لکھیں');
-    if (value != null && value.trim().isNotEmpty) {
-      controller.addText(text: value.trim());
-    }
+    if (value != null && value.trim().isNotEmpty) controller.addText(text: value.trim());
   }
 
   Future<void> _editText() async {
@@ -399,10 +403,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
             maxLines: 7,
             textDirection: TextDirection.rtl,
             style: const TextStyle(fontFamily: 'Gulzar', fontSize: 23),
-            decoration: const InputDecoration(
-              hintText: 'اردو متن',
-              border: OutlineInputBorder(),
-            ),
+            decoration: const InputDecoration(hintText: 'اردو متن', border: OutlineInputBorder()),
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
@@ -451,20 +452,18 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     );
   }
 
-  Future<void> _fontSize(DesignElement element) {
-    return _singleSlider('Font Size', element.fontSize, 8, 300, (value) => '${value.round()} px', controller.setSelectedFontSize);
-  }
+  Future<void> _fontSize(DesignElement element) => _singleSlider('Font Size', element.fontSize, 8, 300, (v) => '${v.round()} px', controller.setSelectedFontSize);
 
   Future<void> _opacity() {
     final element = controller.selected;
     if (element == null) return Future.value();
-    return _singleSlider('Opacity', element.opacity, 0, 1, (value) => '${(value * 100).round()}%', controller.setSelectedOpacity, divisions: 20);
+    return _singleSlider('Opacity', element.opacity, 0, 1, (v) => '${(v * 100).round()}%', controller.setSelectedOpacity, divisions: 20);
   }
 
   Future<void> _radius() {
     final element = controller.selected;
     if (element == null) return Future.value();
-    return _singleSlider('Corner Radius', element.radius, 0, 240, (value) => '${value.round()} px', controller.setSelectedRadius);
+    return _singleSlider('Corner Radius', element.radius, 0, 240, (v) => '${v.round()} px', controller.setSelectedRadius);
   }
 
   Future<void> _singleSlider(
@@ -492,13 +491,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                     Text(title, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
                     const SizedBox(height: 8),
                     Text(display(value), style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: _primary)),
-                    Slider(
-                      min: min,
-                      max: max,
-                      divisions: divisions,
-                      value: value,
-                      onChanged: (newValue) => setSheetState(() => value = newValue),
-                    ),
+                    Slider(min: min, max: max, divisions: divisions, value: value, onChanged: (newValue) => setSheetState(() => value = newValue)),
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton.icon(
@@ -523,17 +516,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   Future<void> _colorSheet() async {
     final element = controller.selected;
     if (element == null) return;
-    const colors = [
-      Colors.black,
-      Colors.white,
-      _primary,
-      Color(0xFF0F766E),
-      Color(0xFFDC2626),
-      Color(0xFFF59E0B),
-      Color(0xFF2563EB),
-      Color(0xFF7C2D12),
-      Color(0xFFDB2777),
-    ];
+    const colors = [Colors.black, Colors.white, _primary, Color(0xFF0F766E), Color(0xFFDC2626), Color(0xFFF59E0B), Color(0xFF2563EB), Color(0xFF7C2D12), Color(0xFFDB2777)];
     final color = await showModalBottomSheet<Color>(
       context: context,
       showDragHandle: true,
@@ -551,9 +534,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                   child: CircleAvatar(
                     radius: 25,
                     backgroundColor: color,
-                    child: color.toARGB32() == element.colorValue
-                        ? const Icon(Icons.check_rounded, color: Colors.white)
-                        : null,
+                    child: color.toARGB32() == element.colorValue ? const Icon(Icons.check_rounded, color: Colors.white) : null,
                   ),
                 );
               }).toList(),
@@ -568,7 +549,6 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   Future<void> _effectsSheet() async {
     final element = controller.selected;
     if (element == null) return;
-
     double strokeWidth = element.strokeWidth;
     double shadowBlur = element.shadowBlur;
     double shadowX = element.shadowOffsetX;
@@ -599,16 +579,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                         width: double.infinity,
                         child: FilledButton.icon(
                           onPressed: () {
-                            controller.setSelectedStroke(
-                              width: strokeWidth,
-                              colorValue: element.strokeColorValue == 0 ? Colors.black.toARGB32() : element.strokeColorValue,
-                            );
-                            controller.setSelectedShadow(
-                              blur: shadowBlur,
-                              offsetX: shadowX,
-                              offsetY: shadowY,
-                              colorValue: element.shadowColorValue == 0 ? Colors.black54.toARGB32() : element.shadowColorValue,
-                            );
+                            controller.setSelectedStroke(width: strokeWidth, colorValue: element.strokeColorValue == 0 ? Colors.black.toARGB32() : element.strokeColorValue);
+                            controller.setSelectedShadow(blur: shadowBlur, offsetX: shadowX, offsetY: shadowY, colorValue: element.shadowColorValue == 0 ? Colors.black54.toARGB32() : element.shadowColorValue);
                             Navigator.pop(sheetContext);
                           },
                           icon: const Icon(Icons.check_rounded),
@@ -662,10 +634,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                       width: double.infinity,
                       child: FilledButton.icon(
                         onPressed: () {
-                          controller.setSelectedTypography(
-                            letterSpacing: letterSpacing,
-                            lineHeight: lineHeight,
-                          );
+                          controller.setSelectedTypography(letterSpacing: letterSpacing, lineHeight: lineHeight);
                           Navigator.pop(sheetContext);
                         },
                         icon: const Icon(Icons.check_rounded),
@@ -683,20 +652,12 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   }
 
   Future<void> _alignSheet() async {
-    final value = await _choiceSheet<TextAlign>(
-      'Text Alignment',
-      [TextAlign.left, TextAlign.center, TextAlign.right, TextAlign.justify],
-      (value) => value.name,
-    );
+    final value = await _choiceSheet<TextAlign>('Text Alignment', [TextAlign.left, TextAlign.center, TextAlign.right, TextAlign.justify], (value) => value.name);
     if (value != null) controller.setSelectedAlign(value);
   }
 
   Future<void> _directionSheet() async {
-    final value = await _choiceSheet<TextDirection>(
-      'Text Direction',
-      [TextDirection.rtl, TextDirection.ltr],
-      (value) => value == TextDirection.rtl ? 'Right to left (Urdu)' : 'Left to right',
-    );
+    final value = await _choiceSheet<TextDirection>('Text Direction', [TextDirection.rtl, TextDirection.ltr], (value) => value == TextDirection.rtl ? 'Right to left (Urdu)' : 'Left to right');
     if (value != null) controller.setSelectedDirection(value);
   }
 
@@ -710,12 +671,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
             shrinkWrap: true,
             children: [
               _SheetHeader(title, 'Choose a professional layout setting'),
-              ...values.map(
-                (value) => ListTile(
-                  title: Text(label(value), style: const TextStyle(fontWeight: FontWeight.w700)),
-                  onTap: () => Navigator.pop(sheetContext, value),
-                ),
-              ),
+              ...values.map((value) => ListTile(title: Text(label(value), style: const TextStyle(fontWeight: FontWeight.w700)), onTap: () => Navigator.pop(sheetContext, value))),
             ],
           ),
         );
@@ -732,30 +688,9 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
           child: Wrap(
             children: [
               const _SheetHeader('Arrange', 'Precise layer and position controls'),
-              ListTile(
-                leading: const Icon(Icons.vertical_align_top_rounded),
-                title: const Text('Bring to front'),
-                onTap: () {
-                  controller.bringSelectedToFront();
-                  Navigator.pop(sheetContext);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.vertical_align_bottom_rounded),
-                title: const Text('Send to back'),
-                onTap: () {
-                  controller.sendSelectedToBack();
-                  Navigator.pop(sheetContext);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.center_focus_strong_rounded),
-                title: const Text('Center on canvas'),
-                onTap: () {
-                  controller.centerSelected();
-                  Navigator.pop(sheetContext);
-                },
-              ),
+              ListTile(leading: const Icon(Icons.vertical_align_top_rounded), title: const Text('Bring to front'), onTap: () { controller.bringSelectedToFront(); Navigator.pop(sheetContext); }),
+              ListTile(leading: const Icon(Icons.vertical_align_bottom_rounded), title: const Text('Send to back'), onTap: () { controller.sendSelectedToBack(); Navigator.pop(sheetContext); }),
+              ListTile(leading: const Icon(Icons.center_focus_strong_rounded), title: const Text('Center on canvas'), onTap: () { controller.centerSelected(); Navigator.pop(sheetContext); }),
             ],
           ),
         );
@@ -772,38 +707,10 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
           child: Wrap(
             children: [
               const _SheetHeader('Object', 'More professional editing actions'),
-              ListTile(
-                leading: const Icon(Icons.copy_rounded),
-                title: const Text('Duplicate'),
-                onTap: () {
-                  controller.duplicateSelected();
-                  Navigator.pop(sheetContext);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.visibility_off_outlined),
-                title: const Text('Hide / Show'),
-                onTap: () {
-                  controller.toggleSelectedHidden();
-                  Navigator.pop(sheetContext);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.rotate_left_rounded),
-                title: const Text('Reset rotation'),
-                onTap: () {
-                  controller.resetSelectedRotation();
-                  Navigator.pop(sheetContext);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.delete_outline_rounded),
-                title: const Text('Delete'),
-                onTap: () {
-                  controller.deleteSelected();
-                  Navigator.pop(sheetContext);
-                },
-              ),
+              ListTile(leading: const Icon(Icons.copy_rounded), title: const Text('Duplicate'), onTap: () { controller.duplicateSelected(); Navigator.pop(sheetContext); }),
+              ListTile(leading: const Icon(Icons.visibility_off_outlined), title: const Text('Hide / Show'), onTap: () { controller.toggleSelectedHidden(); Navigator.pop(sheetContext); }),
+              ListTile(leading: const Icon(Icons.rotate_left_rounded), title: const Text('Reset rotation'), onTap: () { controller.resetSelectedRotation(); Navigator.pop(sheetContext); }),
+              ListTile(leading: const Icon(Icons.delete_outline_rounded), title: const Text('Delete'), onTap: () { controller.deleteSelected(); Navigator.pop(sheetContext); }),
             ],
           ),
         );
@@ -824,47 +731,16 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
               ...List.generate(controller.project.pages.length, (index) {
                 final selected = index == controller.currentPageIndex;
                 return ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: selected ? _primary : Colors.black12,
-                    child: Text(
-                      '${index + 1}',
-                      style: TextStyle(color: selected ? Colors.white : Colors.black87),
-                    ),
-                  ),
+                  leading: CircleAvatar(backgroundColor: selected ? _primary : Colors.black12, child: Text('${index + 1}', style: TextStyle(color: selected ? Colors.white : Colors.black87))),
                   title: Text(controller.project.pages[index].title),
                   trailing: selected ? const Icon(Icons.check_circle_rounded, color: _primary) : null,
-                  onTap: () {
-                    controller.switchPage(index);
-                    Navigator.pop(sheetContext);
-                  },
+                  onTap: () { controller.switchPage(index); Navigator.pop(sheetContext); },
                 );
               }),
               const Divider(),
-              ListTile(
-                leading: const Icon(Icons.add_circle_outline_rounded),
-                title: const Text('Add page'),
-                onTap: () {
-                  controller.addPage();
-                  Navigator.pop(sheetContext);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.copy_all_outlined),
-                title: const Text('Duplicate current page'),
-                onTap: () {
-                  controller.duplicatePage();
-                  Navigator.pop(sheetContext);
-                },
-              ),
-              ListTile(
-                enabled: controller.project.pages.length > 1,
-                leading: const Icon(Icons.delete_outline_rounded),
-                title: const Text('Delete current page'),
-                onTap: () {
-                  controller.deletePage();
-                  Navigator.pop(sheetContext);
-                },
-              ),
+              ListTile(leading: const Icon(Icons.add_circle_outline_rounded), title: const Text('Add page'), onTap: () { controller.addPage(); Navigator.pop(sheetContext); }),
+              ListTile(leading: const Icon(Icons.copy_all_outlined), title: const Text('Duplicate current page'), onTap: () { controller.duplicatePage(); Navigator.pop(sheetContext); }),
+              ListTile(enabled: controller.project.pages.length > 1, leading: const Icon(Icons.delete_outline_rounded), title: const Text('Delete current page'), onTap: () { controller.deletePage(); Navigator.pop(sheetContext); }),
             ],
           ),
         );
@@ -881,30 +757,9 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
           child: Wrap(
             children: [
               const _SheetHeader('Canvas & Design', 'Set up your artboard before creating'),
-              ListTile(
-                leading: const Icon(Icons.palette_outlined),
-                title: const Text('Background'),
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  _backgroundSheet();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.aspect_ratio_rounded),
-                title: const Text('Canvas size'),
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  _canvasSizeDialog();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.layers_outlined),
-                title: const Text('Pages'),
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  _pagesSheet();
-                },
-              ),
+              ListTile(leading: const Icon(Icons.palette_outlined), title: const Text('Background'), onTap: () { Navigator.pop(sheetContext); _backgroundSheet(); }),
+              ListTile(leading: const Icon(Icons.aspect_ratio_rounded), title: const Text('Canvas size'), onTap: () { Navigator.pop(sheetContext); _canvasSizeDialog(); }),
+              ListTile(leading: const Icon(Icons.layers_outlined), title: const Text('Pages'), onTap: () { Navigator.pop(sheetContext); _pagesSheet(); }),
             ],
           ),
         );
@@ -913,15 +768,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   }
 
   Future<void> _backgroundSheet() async {
-    const colors = [
-      Colors.white,
-      Color(0xFF0F172A),
-      Color(0xFFF8FAFC),
-      Color(0xFFF5F3FF),
-      Color(0xFFFEF3C7),
-      Color(0xFFE0F2FE),
-      Color(0xFFFCE7F3),
-    ];
+    const colors = [Colors.white, Color(0xFF0F172A), Color(0xFFF8FAFC), Color(0xFFF5F3FF), Color(0xFFFEF3C7), Color(0xFFE0F2FE), Color(0xFFFCE7F3)];
     final color = await showModalBottomSheet<Color>(
       context: context,
       showDragHandle: true,
@@ -931,12 +778,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
           child: Wrap(
             spacing: 14,
             runSpacing: 14,
-            children: colors.map((color) {
-              return InkWell(
-                onTap: () => Navigator.pop(sheetContext, color),
-                child: CircleAvatar(radius: 26, backgroundColor: color),
-              );
-            }).toList(),
+            children: colors.map((color) => InkWell(onTap: () => Navigator.pop(sheetContext, color), child: CircleAvatar(radius: 26, backgroundColor: color))).toList(),
           ),
         );
       },
@@ -1002,9 +844,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
         await _export.exportJpg(controller.page, _canvasKey);
       }
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(value == 'pdf' ? 'PDF ready to share' : 'Export saved to gallery')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(value == 'pdf' ? 'PDF ready to share' : 'Export saved to gallery')));
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export failed: $error')));
