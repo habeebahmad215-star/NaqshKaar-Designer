@@ -33,8 +33,15 @@ jobs:
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null 2>&1 || true
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36"
 
+      - name: Configure Android plugin compatibility
+        run: |
+          printf '\nandroid.builtInKotlin=false\n' >> android/gradle.properties
+          printf 'android.newDsl=false\n' >> android/gradle.properties
+
       - name: Set Android compile SDK to 36
-        run: sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 36/' android/app/build.gradle.kts
+        run: |
+          sed -i -E 's/^[[:space:]]*compileSdk[[:space:]]*=.*/    compileSdk = 36/' android/app/build.gradle.kts
+          grep -n "compileSdk" android/app/build.gradle.kts
 
       - name: Get dependencies
         run: flutter pub get
