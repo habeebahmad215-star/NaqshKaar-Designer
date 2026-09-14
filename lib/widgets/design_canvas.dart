@@ -21,14 +21,14 @@ class DesignCanvas extends StatelessWidget {
       child: SizedBox(
         width: page.size.width,
         height: page.size.height,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: page.background,
-          ),
-          child: Stack(
-            children: [
-              for (final e in page.elements) _element(e),
-            ],
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => controller.select(null),
+          child: DecoratedBox(
+            decoration: BoxDecoration(color: page.background),
+            child: Stack(
+              children: [for (final e in page.elements) _element(e)],
+            ),
           ),
         ),
       ),
@@ -36,12 +36,9 @@ class DesignCanvas extends StatelessWidget {
   }
 
   Widget _element(DesignElement e) {
-    if (e.hidden) {
-      return const SizedBox.shrink();
-    }
+    if (e.hidden) return const SizedBox.shrink();
 
     final selected = controller.selectedId == e.id;
-
     Widget child;
 
     switch (e.kind) {
@@ -54,14 +51,11 @@ class DesignCanvas extends StatelessWidget {
             fontFamily: e.fontFamily,
             fontSize: e.fontSize,
             color: e.color,
-            fontWeight:
-                e.bold ? FontWeight.bold : FontWeight.normal,
-            fontStyle:
-                e.italic ? FontStyle.italic : FontStyle.normal,
+            fontWeight: e.bold ? FontWeight.bold : FontWeight.normal,
+            fontStyle: e.italic ? FontStyle.italic : FontStyle.normal,
           ),
         );
         break;
-
       case ElementKind.shape:
         child = DecoratedBox(
           decoration: BoxDecoration(
@@ -70,23 +64,14 @@ class DesignCanvas extends StatelessWidget {
           ),
         );
         break;
-
       case ElementKind.image:
         child = e.imageBytes == null
-            ? const ColoredBox(
-                color: Colors.black12,
-              )
-            : Image.memory(
-                e.imageBytes!,
-                fit: BoxFit.cover,
-              );
+            ? const ColoredBox(color: Colors.black12)
+            : Image.memory(e.imageBytes!, fit: BoxFit.cover);
         break;
     }
 
-    child = Opacity(
-      opacity: e.opacity,
-      child: child,
-    );
+    child = Opacity(opacity: e.opacity, child: child);
 
     return Positioned(
       left: e.x,
@@ -96,7 +81,25 @@ class DesignCanvas extends StatelessWidget {
       child: Transform.rotate(
         angle: e.rotation,
         child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
           onTap: () => controller.select(e.id),
+          onPanStart: e.locked
+              ? null
+              : (_) {
+                  controller.select(e.id);
+                  controller.startContinuousEdit();
+                },
+          onPanUpdate: e.locked
+              ? null
+              : (details) {
+                  controller.moveSelectedBy(
+                    details.delta.dx,
+                    details.delta.dy,
+                  );
+                },
+          onPanEnd: e.locked
+              ? null
+              : (_) => controller.finishContinuousEdit(),
           child: DecoratedBox(
             decoration: selected
                 ? BoxDecoration(
