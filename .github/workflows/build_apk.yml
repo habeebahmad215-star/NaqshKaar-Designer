@@ -43,6 +43,19 @@ jobs:
           sed -i -E 's/^[[:space:]]*compileSdk[[:space:]]*=.*/    compileSdk = 36/' android/app/build.gradle.kts
           grep -n "compileSdk" android/app/build.gradle.kts
 
+      - name: Download bundled Urdu fonts
+        run: |
+          mkdir -p assets/fonts
+          curl -fL --retry 3 -o assets/fonts/Gulzar-Regular.ttf \
+            https://raw.githubusercontent.com/googlefonts/Gulzar/main/fonts/ttf/Gulzar-Regular.ttf
+          curl -fL --retry 3 -o assets/fonts/NotoNastaliqUrdu-Regular.ttf \
+            https://raw.githubusercontent.com/google/fonts/main/ofl/notonastaliqurdu/NotoNastaliqUrdu-Regular.ttf
+          curl -fL --retry 3 -o assets/fonts/NotoNastaliqUrdu-Bold.ttf \
+            https://raw.githubusercontent.com/google/fonts/main/ofl/notonastaliqurdu/NotoNastaliqUrdu-Bold.ttf
+          test -s assets/fonts/Gulzar-Regular.ttf
+          test -s assets/fonts/NotoNastaliqUrdu-Regular.ttf
+          test -s assets/fonts/NotoNastaliqUrdu-Bold.ttf
+
       - name: Get dependencies
         run: flutter pub get
 
