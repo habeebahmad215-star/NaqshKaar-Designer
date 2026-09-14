@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../models/design_models.dart';
@@ -155,6 +156,65 @@ class WorkspaceController extends ChangeNotifier {
     if (e == null || e.locked) return;
     e.x = (e.x + dx).clamp(-e.width * .75, page.size.width - e.width * .25);
     e.y = (e.y + dy).clamp(-e.height * .75, page.size.height - e.height * .25);
+    _changed();
+  }
+
+  void resizeSelectedFromHandle(String handle, double dx, double dy) {
+    final e = selected;
+    if (e == null || e.locked) return;
+
+    final c = math.cos(e.rotation);
+    final s = math.sin(e.rotation);
+    final localDx = dx * c + dy * s;
+    final localDy = -dx * s + dy * c;
+    const minSize = 32.0;
+
+    double newWidth = e.width;
+    double newHeight = e.height;
+    double localShiftX = 0;
+    double localShiftY = 0;
+
+    if (handle.contains('right')) newWidth += localDx;
+    if (handle.contains('left')) {
+      newWidth -= localDx;
+      localShiftX = localDx;
+    }
+    if (handle.contains('bottom')) newHeight += localDy;
+    if (handle.contains('top')) {
+      newHeight -= localDy;
+      localShiftY = localDy;
+    }
+
+    newWidth = newWidth.clamp(minSize, page.size.width * 2);
+    newHeight = newHeight.clamp(minSize, page.size.height * 2);
+
+    if (handle.contains('left')) {
+      final actualShiftX = e.width - newWidth;
+      localShiftX = actualShiftX;
+    } else {
+      localShiftX = 0;
+    }
+    if (handle.contains('top')) {
+      final actualShiftY = e.height - newHeight;
+      localShiftY = actualShiftY;
+    } else {
+      localShiftY = 0;
+    }
+
+    final worldShiftX = localShiftX * c - localShiftY * s;
+    final worldShiftY = localShiftX * s + localShiftY * c;
+
+    e.x += worldShiftX;
+    e.y += worldShiftY;
+    e.width = newWidth;
+    e.height = newHeight;
+    _changed();
+  }
+
+  void rotateSelectedTo(double angle) {
+    final e = selected;
+    if (e == null || e.locked) return;
+    e.rotation = angle;
     _changed();
   }
 
