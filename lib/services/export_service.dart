@@ -63,7 +63,7 @@ class ExportService {
 
   Future<pw.Font> _loadFont(String family) async {
     final asset = family == 'NotoNastaliqUrdu'
-        ? 'assets/fonts/NotoNastaliqUrdu[wght].ttf'
+        ? 'assets/fonts/NotoNastaliqUrdu-Regular.ttf'
         : 'assets/fonts/Gulzar-Regular.ttf';
     final bytes = await rootBundle.load(asset);
     return pw.Font.ttf(bytes);
