@@ -23,10 +23,10 @@ class _DesignCanvasState extends State<DesignCanvas> {
       child: DecoratedBox(decoration: BoxDecoration(color: page.background, boxShadow: const [BoxShadow(blurRadius: 22, spreadRadius: 1, offset: Offset(0, 8), color: Color(0x26000000))]), child: Stack(clipBehavior: Clip.none, children: [for (final e in page.elements) _element(e)])),
     )));
   }
-  List<BoxShadow> _shadows(DesignElement e) => e.shadowBlur <= 0 || e.shadowColor.alpha == 0 ? const [] : [BoxShadow(color: e.shadowColor, blurRadius: e.shadowBlur, offset: Offset(e.shadowOffsetX, e.shadowOffsetY))];
+  List<BoxShadow> _shadows(DesignElement e) => e.shadowBlur <= 0 || e.shadowColor.a <= 0 ? const [] : [BoxShadow(color: e.shadowColor, blurRadius: e.shadowBlur, offset: Offset(e.shadowOffsetX, e.shadowOffsetY))];
   BoxDecoration _decoration(DesignElement e, {required bool selected, required bool isShape}) => BoxDecoration(
     color: isShape ? e.color : null, borderRadius: isShape ? BorderRadius.circular(e.radius) : null,
-    border: e.strokeWidth > 0 && e.strokeColor.alpha > 0 ? Border.all(color: e.strokeColor, width: e.strokeWidth) : selected ? Border.all(color: const Color(0xFF6D28D9), width: 2 / scale) : null,
+    border: e.strokeWidth > 0 && e.strokeColor.a > 0 ? Border.all(color: e.strokeColor, width: e.strokeWidth) : selected ? Border.all(color: const Color(0xFF6D28D9), width: 2 / scale) : null,
     boxShadow: _shadows(e));
   Widget _element(DesignElement e) {
     if (e.hidden) return const SizedBox.shrink();
