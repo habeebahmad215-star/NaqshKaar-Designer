@@ -49,7 +49,7 @@ jobs:
           curl -fL --retry 3 -o assets/fonts/Gulzar-Regular.ttf \
             https://raw.githubusercontent.com/googlefonts/Gulzar/main/fonts/ttf/Gulzar-Regular.ttf
           curl -fL --retry 3 -o assets/fonts/NotoNastaliqUrdu-Regular.ttf \
-            https://raw.githubusercontent.com/google/fonts/main/ofl/notonastaliqurdu/NotoNastaliqUrdu-Regular.ttf
+            https://raw.githubusercontent.com/harfbuzz/harfbuzz-monster-fonts/main/NotoNastaliqUrdu-Regular.ttf
           test -s assets/fonts/Gulzar-Regular.ttf
           test -s assets/fonts/NotoNastaliqUrdu-Regular.ttf
 
