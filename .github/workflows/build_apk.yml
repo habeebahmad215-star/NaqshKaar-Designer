@@ -48,10 +48,10 @@ jobs:
           mkdir -p assets/fonts
           curl -fL --retry 3 -o assets/fonts/Gulzar-Regular.ttf \
             https://raw.githubusercontent.com/googlefonts/Gulzar/main/fonts/ttf/Gulzar-Regular.ttf
-          curl -fL --retry 3 -o 'assets/fonts/NotoNastaliqUrdu[wght].ttf' \
-            'https://raw.githubusercontent.com/google/fonts/main/ofl/notonastaliqurdu/NotoNastaliqUrdu%5Bwght%5D.ttf'
+          curl -fL --retry 3 -o assets/fonts/NotoNastaliqUrdu-Regular.ttf \
+            https://raw.githubusercontent.com/google/fonts/main/ofl/notonastaliqurdu/NotoNastaliqUrdu-Regular.ttf
           test -s assets/fonts/Gulzar-Regular.ttf
-          test -s 'assets/fonts/NotoNastaliqUrdu[wght].ttf'
+          test -s assets/fonts/NotoNastaliqUrdu-Regular.ttf
 
       - name: Get dependencies
         run: flutter pub get
