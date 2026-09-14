@@ -129,11 +129,6 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
         final scale =
             scaleX < scaleY ? scaleX : scaleY;
 
-        final displayWidth =
-            page.size.width * scale;
-        final displayHeight =
-            page.size.height * scale;
-
         return Center(
           child: Container(
             padding: const EdgeInsets.all(16),
