@@ -137,7 +137,7 @@ class WorkspaceController extends ChangeNotifier {
       y: page.size.height * .3,
       width: 320,
       height: 220,
-      colorValue: const Color(0xFF7C3AED).value,
+      colorValue: const Color(0xFF7C3AED).toARGB32(),
     );
 
     page.elements.add(e);
@@ -355,10 +355,4 @@ class WorkspaceController extends ChangeNotifier {
 
     notifyListeners();
   }
-}
-
-extension FirstOrNullExtension<T>
-    on Iterable<T> {
-  T? get firstOrNull =>
-      isEmpty ? null : first;
 }
