@@ -6,11 +6,13 @@ import '../state/workspace_controller.dart';
 class DesignCanvas extends StatefulWidget {
   final WorkspaceController controller;
   final GlobalKey repaintKey;
+  final double interactionScale;
 
   const DesignCanvas({
     super.key,
     required this.controller,
     required this.repaintKey,
+    this.interactionScale = 1,
   });
 
   @override
@@ -22,6 +24,7 @@ class _DesignCanvasState extends State<DesignCanvas> {
   double? _rotationStartValue;
 
   WorkspaceController get controller => widget.controller;
+  double get scale => widget.interactionScale.clamp(.05, 10);
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +39,17 @@ class _DesignCanvasState extends State<DesignCanvas> {
           behavior: HitTestBehavior.opaque,
           onTap: () => controller.select(null),
           child: DecoratedBox(
-            decoration: BoxDecoration(color: page.background),
+            decoration: BoxDecoration(
+              color: page.background,
+              boxShadow: const [
+                BoxShadow(
+                  blurRadius: 22,
+                  spreadRadius: 1,
+                  offset: Offset(0, 8),
+                  color: Color(0x26000000),
+                ),
+              ],
+            ),
             child: Stack(
               clipBehavior: Clip.none,
               children: [for (final e in page.elements) _element(e)],
@@ -55,16 +68,19 @@ class _DesignCanvasState extends State<DesignCanvas> {
 
     switch (e.kind) {
       case ElementKind.text:
-        child = Text(
-          e.text.isEmpty ? 'Text' : e.text,
-          textAlign: e.textAlign,
-          textDirection: e.textDirection,
-          style: TextStyle(
-            fontFamily: e.fontFamily,
-            fontSize: e.fontSize,
-            color: e.color,
-            fontWeight: e.bold ? FontWeight.bold : FontWeight.normal,
-            fontStyle: e.italic ? FontStyle.italic : FontStyle.normal,
+        child = Center(
+          child: Text(
+            e.text.isEmpty ? 'Text' : e.text,
+            textAlign: e.textAlign,
+            textDirection: e.textDirection,
+            style: TextStyle(
+              fontFamily: e.fontFamily == 'JameelNoori' ? 'Gulzar' : e.fontFamily,
+              fontSize: e.fontSize,
+              color: e.color,
+              fontWeight: e.bold ? FontWeight.bold : FontWeight.normal,
+              fontStyle: e.italic ? FontStyle.italic : FontStyle.normal,
+              height: 1.25,
+            ),
           ),
         );
         break;
@@ -109,8 +125,8 @@ class _DesignCanvasState extends State<DesignCanvas> {
                   ? null
                   : (details) {
                       controller.moveSelectedBy(
-                        details.delta.dx,
-                        details.delta.dy,
+                        details.delta.dx / scale,
+                        details.delta.dy / scale,
                       );
                     },
               onPanEnd: e.locked
@@ -120,15 +136,12 @@ class _DesignCanvasState extends State<DesignCanvas> {
                 decoration: selected
                     ? BoxDecoration(
                         border: Border.all(
-                          color: const Color(0xFF7C3AED),
-                          width: 3,
+                          color: const Color(0xFF6D28D9),
+                          width: 2 / scale,
                         ),
                       )
                     : const BoxDecoration(),
-                child: Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: child,
-                ),
+                child: child,
               ),
             ),
             if (selected && !e.locked) _selectionHandles(e),
@@ -157,6 +170,8 @@ class _DesignCanvasState extends State<DesignCanvas> {
   }
 
   Widget _handle(DesignElement e, String type, Alignment alignment) {
+    final touchSize = 34 / scale;
+    final visualSize = 18 / scale;
     return Align(
       alignment: alignment,
       child: GestureDetector(
@@ -168,29 +183,30 @@ class _DesignCanvasState extends State<DesignCanvas> {
         onPanUpdate: (details) {
           controller.resizeSelectedFromHandle(
             type,
-            details.delta.dx,
-            details.delta.dy,
+            details.delta.dx / scale,
+            details.delta.dy / scale,
           );
         },
         onPanEnd: (_) => controller.finishContinuousEdit(),
-        child: Container(
-          width: 30,
-          height: 30,
-          alignment: Alignment.center,
-          child: Container(
-            width: 18,
-            height: 18,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: const Color(0xFF7C3AED), width: 3),
-              borderRadius: BorderRadius.circular(5),
-              boxShadow: const [
-                BoxShadow(
-                  blurRadius: 5,
-                  spreadRadius: 1,
-                  color: Colors.black26,
-                ),
-              ],
+        child: SizedBox(
+          width: touchSize,
+          height: touchSize,
+          child: Center(
+            child: Container(
+              width: visualSize,
+              height: visualSize,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: const Color(0xFF6D28D9), width: 2 / scale),
+                borderRadius: BorderRadius.circular(4 / scale),
+                boxShadow: const [
+                  BoxShadow(
+                    blurRadius: 5,
+                    spreadRadius: 1,
+                    color: Colors.black26,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -199,10 +215,11 @@ class _DesignCanvasState extends State<DesignCanvas> {
   }
 
   Widget _rotationHandle(DesignElement e) {
+    final size = 34 / scale;
     return Align(
       alignment: Alignment.topCenter,
       child: Transform.translate(
-        offset: const Offset(0, -42),
+        offset: Offset(0, -42 / scale),
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onPanStart: (details) {
@@ -235,12 +252,12 @@ class _DesignCanvasState extends State<DesignCanvas> {
             controller.finishContinuousEdit();
           },
           child: Container(
-            width: 34,
-            height: 34,
+            width: size,
+            height: size,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: Colors.white,
-              border: Border.all(color: const Color(0xFF7C3AED), width: 3),
+              border: Border.all(color: const Color(0xFF6D28D9), width: 2 / scale),
               boxShadow: const [
                 BoxShadow(
                   blurRadius: 5,
@@ -249,10 +266,10 @@ class _DesignCanvasState extends State<DesignCanvas> {
                 ),
               ],
             ),
-            child: const Icon(
+            child: Icon(
               Icons.rotate_right_rounded,
-              size: 21,
-              color: Color(0xFF7C3AED),
+              size: 20 / scale,
+              color: const Color(0xFF6D28D9),
             ),
           ),
         ),
