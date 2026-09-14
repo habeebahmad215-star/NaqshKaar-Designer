@@ -18,224 +18,244 @@ class WorkspaceScreen extends StatefulWidget {
 class _WorkspaceScreenState extends State<WorkspaceScreen> {
   late final WorkspaceController controller;
   final GlobalKey _canvasKey = GlobalKey();
-  final ExportService _exportService = ExportService();
-  final ProjectRepository _repository = ProjectRepository();
-  final ImagePicker _imagePicker = ImagePicker();
-  final TransformationController _viewTransform = TransformationController();
-  static const _purple = Color(0xFF6D28D9);
+  final ExportService _export = ExportService();
+  final ProjectRepository _repo = ProjectRepository();
+  final ImagePicker _picker = ImagePicker();
+  final TransformationController _transform = TransformationController();
+  static const _primary = Color(0xFF6D28D9);
   static const _ink = Color(0xFF171326);
-  static const _surface = Color(0xFFF4F3F8);
+  static const _bg = Color(0xFFF5F3F9);
 
   @override
-  void initState() { super.initState(); controller = WorkspaceController(initial: widget.initialProject, newSize: widget.size); }
+  void initState() {
+    super.initState();
+    controller = WorkspaceController(initial: widget.initialProject, newSize: widget.size);
+  }
   @override
-  void dispose() { _viewTransform.dispose(); controller.dispose(); super.dispose(); }
+  void dispose() {
+    _transform.dispose();
+    controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: controller,
-    builder: (context, _) => Scaffold(
-      backgroundColor: _surface,
+    builder: (_, __) => Scaffold(
+      backgroundColor: _bg,
       appBar: _appBar(),
-      body: Column(children: [Expanded(child: _editorArea()), _bottomToolbar()]),
+      body: Column(children: [Expanded(child: _canvasArea()), _toolbar()]),
     ),
   );
 
   PreferredSizeWidget _appBar() => AppBar(
-    elevation: 0, backgroundColor: Colors.white, surfaceTintColor: Colors.white, titleSpacing: 2,
-    leading: IconButton(tooltip: 'Back', icon: const Icon(Icons.arrow_back_rounded), onPressed: () => Navigator.pop(context)),
+    backgroundColor: Colors.white,
+    surfaceTintColor: Colors.white,
+    elevation: 0,
+    leading: IconButton(icon: const Icon(Icons.arrow_back_rounded), onPressed: () => Navigator.pop(context)),
+    titleSpacing: 0,
     title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(controller.project.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: _ink)),
-      Text('Page ${controller.currentPageIndex + 1}  •  ${controller.page.size.width.toInt()} × ${controller.page.size.height.toInt()}', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.black54)),
+      Text('Page ${controller.currentPageIndex + 1}  •  ${controller.page.size.width.round()} × ${controller.page.size.height.round()}', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.black54)),
     ]),
     actions: [
-      IconButton(tooltip: 'Save', onPressed: _saveProject, icon: const Icon(Icons.save_outlined)),
       IconButton(tooltip: 'Undo', onPressed: controller.canUndo ? controller.undo : null, icon: const Icon(Icons.undo_rounded)),
       IconButton(tooltip: 'Redo', onPressed: controller.canRedo ? controller.redo : null, icon: const Icon(Icons.redo_rounded)),
-      PopupMenuButton<String>(tooltip: 'Export', onSelected: _handleMenu, itemBuilder: (context) => const [
-        PopupMenuItem(value: 'png', child: Text('Export PNG')), PopupMenuItem(value: 'jpg', child: Text('Export JPG')), PopupMenuItem(value: 'pdf', child: Text('Share PDF')),
+      IconButton(tooltip: 'Save', onPressed: _save, icon: const Icon(Icons.save_outlined)),
+      PopupMenuButton<String>(onSelected: _exportMenu, itemBuilder: (_) => const [
+        PopupMenuItem(value: 'png', child: Text('Export PNG')),
+        PopupMenuItem(value: 'jpg', child: Text('Export JPG')),
+        PopupMenuItem(value: 'pdf', child: Text('Share PDF')),
       ]),
     ],
   );
 
-  Widget _editorArea() {
-    final page = controller.page;
-    return LayoutBuilder(builder: (context, constraints) {
-      final width = (constraints.maxWidth - 28).clamp(120.0, double.infinity);
-      final height = (constraints.maxHeight - 28).clamp(120.0, double.infinity);
-      final baseScale = (width / page.size.width < height / page.size.height ? width / page.size.width : height / page.size.height).clamp(.05, 1.0);
-      return AnimatedBuilder(animation: _viewTransform, builder: (context, _) {
-        final zoom = _viewTransform.value.getMaxScaleOnAxis().clamp(.5, 4.0);
-        return Padding(padding: const EdgeInsets.all(14), child: Stack(children: [
-          Positioned.fill(child: InteractiveViewer(
-            transformationController: _viewTransform, minScale: .5, maxScale: 4, constrained: false, boundaryMargin: const EdgeInsets.all(220),
-            child: Center(child: SizedBox(width: width, height: height, child: FittedBox(
-              fit: BoxFit.contain, alignment: Alignment.center,
-              child: DesignCanvas(controller: controller, repaintKey: _canvasKey, interactionScale: baseScale * zoom),
-            ))),
-          )),
-          Positioned(top: 8, right: 8, child: _floatingButton(Icons.center_focus_strong_rounded, 'Reset zoom', () => _viewTransform.value = Matrix4.identity())),
-          Positioned(left: 8, bottom: 8, child: _zoomBadge(zoom)),
-        ]));
-      });
+  Widget _canvasArea() => LayoutBuilder(builder: (context, c) {
+    final maxW = (c.maxWidth - 28).clamp(120.0, double.infinity);
+    final maxH = (c.maxHeight - 28).clamp(120.0, double.infinity);
+    final fitScale = (maxW / controller.page.size.width < maxH / controller.page.size.height ? maxW / controller.page.size.width : maxH / controller.page.size.height).clamp(.05, 1.0);
+    return AnimatedBuilder(animation: _transform, builder: (_, __) {
+      final zoom = _transform.value.getMaxScaleOnAxis().clamp(.5, 4.0);
+      return Padding(padding: const EdgeInsets.all(14), child: Stack(children: [
+        Positioned.fill(child: InteractiveViewer(
+          transformationController: _transform,
+          minScale: .5,
+          maxScale: 4,
+          constrained: false,
+          boundaryMargin: const EdgeInsets.all(240),
+          child: Center(child: SizedBox(width: maxW, height: maxH, child: FittedBox(
+            fit: BoxFit.contain,
+            child: DesignCanvas(controller: controller, repaintKey: _canvasKey, interactionScale: fitScale * zoom),
+          ))),
+        )),
+        Positioned(top: 8, right: 8, child: _roundButton(Icons.center_focus_strong_rounded, 'Reset view', () => _transform.value = Matrix4.identity())),
+        Positioned(left: 8, bottom: 8, child: _badge('${(zoom * 100).round()}%')),
+      ]));
     });
-  }
+  });
 
-  Widget _floatingButton(IconData icon, String tooltip, VoidCallback onTap) => Material(
-    color: Colors.white, elevation: 3, shadowColor: Colors.black26, borderRadius: BorderRadius.circular(13),
-    child: IconButton(tooltip: tooltip, onPressed: onTap, icon: Icon(icon, size: 21)),
+  Widget _roundButton(IconData icon, String tip, VoidCallback tap) => Material(
+    color: Colors.white, elevation: 3, borderRadius: BorderRadius.circular(14),
+    child: IconButton(tooltip: tip, onPressed: tap, icon: Icon(icon, size: 21)),
   );
-  Widget _zoomBadge(double zoom) => Material(color: Colors.white, elevation: 2, borderRadius: BorderRadius.circular(18), child: Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7), child: Text('${(zoom * 100).round()}%', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
+  Widget _badge(String text) => Material(color: Colors.white, elevation: 2, borderRadius: BorderRadius.circular(18), child: Padding(padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7), child: Text(text, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800))));
+
+  Widget _toolbar() => SafeArea(top: false, child: Container(
+    decoration: const BoxDecoration(color: Colors.white, boxShadow: [BoxShadow(blurRadius: 20, offset: Offset(0, -5), color: Color(0x18000000))]),
+    padding: const EdgeInsets.fromLTRB(9, 7, 9, 8),
+    child: controller.selected == null ? _mainTools() : _selectedTools(controller.selected!),
   ));
 
-  Widget _bottomToolbar() {
-    final selected = controller.selected;
-    return SafeArea(top: false, child: Container(
-      decoration: const BoxDecoration(color: Colors.white, boxShadow: [BoxShadow(blurRadius: 18, offset: Offset(0, -5), color: Color(0x1A000000))]),
-      padding: const EdgeInsets.fromLTRB(10, 7, 10, 8), child: selected == null ? _mainTools() : _contextualTools(selected),
-    ));
-  }
-
   Widget _mainTools() => Row(children: [
-    _primaryTool(Icons.text_fields_rounded, 'Text', _addText),
-    _primaryTool(Icons.crop_square_rounded, 'Shape', () => controller.addShape()),
-    _primaryTool(Icons.image_outlined, 'Image', _pickImage),
-    _primaryTool(Icons.layers_outlined, 'Pages', _showPages),
-    _primaryTool(Icons.tune_rounded, 'Design', _showDesignTools),
+    _mainTool(Icons.text_fields_rounded, 'Text', _addText),
+    _mainTool(Icons.crop_square_rounded, 'Shape', controller.addShape),
+    _mainTool(Icons.image_outlined, 'Image', _pickImage),
+    _mainTool(Icons.layers_outlined, 'Pages', _pagesSheet),
+    _mainTool(Icons.tune_rounded, 'Design', _designSheet),
   ]);
 
-  Widget _contextualTools(DesignElement e) {
-    final isText = e.kind == ElementKind.text, isShape = e.kind == ElementKind.shape;
+  Widget _selectedTools(DesignElement e) {
+    final text = e.kind == ElementKind.text;
+    final shape = e.kind == ElementKind.shape;
+    final tools = <Widget>[
+      if (text) _tool(Icons.edit_rounded, 'Edit', _editText),
+      if (text) _tool(Icons.font_download_outlined, 'Font', _fontSheet),
+      if (text) _tool(Icons.format_size_rounded, '${e.fontSize.round()}', () => _fontSize(e)),
+      if (text) _toggle(Icons.format_bold_rounded, 'Bold', e.bold, controller.toggleSelectedBold),
+      if (text) _toggle(Icons.format_italic_rounded, 'Italic', e.italic, controller.toggleSelectedItalic),
+      _tool(Icons.palette_outlined, 'Color', _colorSheet),
+      _tool(Icons.auto_awesome_rounded, 'Effects', _effectsSheet),
+      if (text) _tool(Icons.format_line_spacing_rounded, 'Spacing', _spacingSheet),
+      if (shape) _tool(Icons.rounded_corner, 'Corners', _radius),
+      _tool(Icons.opacity_rounded, 'Opacity', _opacity),
+      if (text) _tool(Icons.format_align_center_rounded, 'Align', _alignSheet),
+      if (text) _tool(Icons.translate_rounded, 'RTL/LTR', _directionSheet),
+      _tool(Icons.open_with_rounded, 'Arrange', _arrangeSheet),
+      _tool(Icons.more_horiz_rounded, 'More', _moreSheet),
+    ];
     return Column(mainAxisSize: MainAxisSize.min, children: [
-      SizedBox(height: 58, child: ListView(scrollDirection: Axis.horizontal, children: [
-        if (isText) _contextTool(Icons.edit_rounded, 'Edit', _editText),
-        if (isText) _contextTool(Icons.font_download_outlined, 'Font', _fontDialog),
-        if (isText) _contextTool(Icons.format_size_rounded, '${e.fontSize.round()}', () => _fontSizeDialog(e)),
-        if (isText) _toggleTool(Icons.format_bold_rounded, 'Bold', e.bold, controller.toggleSelectedBold),
-        if (isText) _toggleTool(Icons.format_italic_rounded, 'Italic', e.italic, controller.toggleSelectedItalic),
-        _contextTool(Icons.palette_outlined, 'Color', _colorDialog),
-        if (isShape) _contextTool(Icons.rounded_corner, 'Corners', _radiusDialog),
-        _contextTool(Icons.opacity_rounded, 'Opacity', _opacityDialog),
-        if (isText) _contextTool(Icons.format_align_center_rounded, 'Align', _alignmentDialog),
-        if (isText) _contextTool(Icons.translate_rounded, 'Direction', _directionDialog),
-        _contextTool(Icons.open_with_rounded, 'Arrange', _arrangeDialog),
-        _contextTool(Icons.more_horiz_rounded, 'More', _showSelectedMore),
-      ])),
-      const SizedBox(height: 2),
-      Row(children: [Expanded(child: Row(children: [Container(width: 8, height: 8, decoration: const BoxDecoration(color: _purple, shape: BoxShape.circle)), const SizedBox(width: 7), Expanded(child: Text(_selectionLabel(e), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800)))])),
-        _quickIcon(Icons.copy_outlined, 'Duplicate', controller.duplicateSelected),
-        _quickIcon(e.locked ? Icons.lock_rounded : Icons.lock_open_rounded, e.locked ? 'Unlock' : 'Lock', controller.toggleSelectedLock),
-        _quickIcon(Icons.delete_outline_rounded, 'Delete', controller.deleteSelected),
+      SizedBox(height: 60, child: ListView(scrollDirection: Axis.horizontal, children: tools)),
+      Row(children: [
+        Expanded(child: Row(children: [Container(width: 8, height: 8, decoration: const BoxDecoration(color: _primary, shape: BoxShape.circle)), const SizedBox(width: 7), Expanded(child: Text(_label(e), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800)))])),
+        IconButton(tooltip: 'Duplicate', visualDensity: VisualDensity.compact, onPressed: controller.duplicateSelected, icon: const Icon(Icons.copy_outlined)),
+        IconButton(tooltip: e.locked ? 'Unlock' : 'Lock', visualDensity: VisualDensity.compact, onPressed: controller.toggleSelectedLock, icon: Icon(e.locked ? Icons.lock_rounded : Icons.lock_open_rounded)),
+        IconButton(tooltip: 'Delete', visualDensity: VisualDensity.compact, onPressed: controller.deleteSelected, icon: const Icon(Icons.delete_outline_rounded)),
       ]),
     ]);
   }
 
-  String _selectionLabel(DesignElement e) {
+  String _label(DesignElement e) {
     if (e.kind == ElementKind.text) return 'Urdu Text  •  ${e.fontFamily == 'JameelNoori' ? 'Gulzar' : e.fontFamily}';
-    if (e.kind == ElementKind.image) return 'Image  •  ${e.width.toInt()} × ${e.height.toInt()}';
-    return 'Shape  •  ${e.width.toInt()} × ${e.height.toInt()}';
+    if (e.kind == ElementKind.image) return 'Image  •  ${e.width.round()} × ${e.height.round()}';
+    return 'Shape  •  ${e.width.round()} × ${e.height.round()}';
   }
+  Widget _mainTool(IconData icon, String label, VoidCallback tap) => Expanded(child: InkWell(onTap: tap, borderRadius: BorderRadius.circular(14), child: Padding(padding: const EdgeInsets.symmetric(vertical: 5), child: Column(children: [Icon(icon, color: _primary, size: 25), const SizedBox(height: 4), Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800))]))));
+  Widget _tool(IconData icon, String label, VoidCallback tap) => Padding(padding: const EdgeInsets.symmetric(horizontal: 3), child: InkWell(onTap: tap, borderRadius: BorderRadius.circular(12), child: SizedBox(width: 64, child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(icon, color: _primary, size: 21), const SizedBox(height: 3), Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w800))]))));
+  Widget _toggle(IconData icon, String label, bool active, VoidCallback tap) => Padding(padding: const EdgeInsets.symmetric(horizontal: 3), child: InkWell(onTap: tap, borderRadius: BorderRadius.circular(12), child: Container(width: 64, decoration: BoxDecoration(color: active ? _primary.withValues(alpha: .10) : Colors.transparent, borderRadius: BorderRadius.circular(12)), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(icon, color: active ? _primary : Colors.black54, size: 21), const SizedBox(height: 3), Text(label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: active ? _primary : Colors.black87))]))));
 
-  Widget _primaryTool(IconData icon, String label, VoidCallback onTap) => Expanded(child: InkWell(
-    onTap: onTap, borderRadius: BorderRadius.circular(14), child: Padding(padding: const EdgeInsets.symmetric(vertical: 5), child: Column(children: [Icon(icon, size: 25, color: _purple), const SizedBox(height: 4), Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800))])),
-  ));
-  Widget _contextTool(IconData icon, String label, VoidCallback onTap) => Padding(padding: const EdgeInsets.symmetric(horizontal: 3), child: InkWell(
-    onTap: onTap, borderRadius: BorderRadius.circular(12), child: SizedBox(width: 62, child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(icon, size: 21, color: _purple), const SizedBox(height: 3), Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w800))])),
-  ));
-  Widget _toggleTool(IconData icon, String label, bool active, VoidCallback onTap) => Padding(padding: const EdgeInsets.symmetric(horizontal: 3), child: InkWell(
-    onTap: onTap, borderRadius: BorderRadius.circular(12), child: Container(width: 62, decoration: BoxDecoration(color: active ? _purple.withValues(alpha: .10) : Colors.transparent, borderRadius: BorderRadius.circular(12)), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(icon, size: 21, color: active ? _purple : Colors.black54), const SizedBox(height: 3), Text(label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: active ? _purple : Colors.black87))])),
-  ));
-  Widget _quickIcon(IconData icon, String tooltip, VoidCallback onTap) => IconButton(tooltip: tooltip, visualDensity: VisualDensity.compact, onPressed: onTap, icon: Icon(icon, size: 21));
-
-  Future<void> _addText() async { final text = await _textDialog(initial: 'اپنا متن یہاں لکھیں'); if (text != null && text.trim().isNotEmpty) controller.addText(text: text.trim()); }
-  Future<void> _editText() async { final e = controller.selected; if (e == null) return; final text = await _textDialog(initial: e.text); if (text != null) controller.editSelectedText(text); }
-  Future<String?> _textDialog({required String initial}) async {
+  Future<void> _addText() async { final value = await _textDialog('Add Urdu Text', 'اپنا متن یہاں لکھیں'); if (value != null && value.trim().isNotEmpty) controller.addText(text: value.trim()); }
+  Future<void> _editText() async { final e = controller.selected; if (e == null) return; final value = await _textDialog('Edit Text', e.text); if (value != null) controller.editSelectedText(value); }
+  Future<String?> _textDialog(String title, String initial) async {
     final c = TextEditingController(text: initial);
-    final result = await showDialog<String>(context: context, builder: (dialogContext) => AlertDialog(
-      title: const Text('Urdu Text', style: TextStyle(fontWeight: FontWeight.w900)),
-      content: TextField(controller: c, autofocus: true, maxLines: 7, textDirection: TextDirection.rtl, style: const TextStyle(fontFamily: 'Gulzar', fontSize: 23), decoration: const InputDecoration(hintText: 'اپنا متن یہاں لکھیں', border: OutlineInputBorder())),
-      actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')), FilledButton(onPressed: () => Navigator.pop(dialogContext, c.text), child: const Text('Apply'))],
+    final result = await showDialog<String>(context: context, builder: (d) => AlertDialog(
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
+      content: TextField(controller: c, autofocus: true, maxLines: 7, textDirection: TextDirection.rtl, style: const TextStyle(fontFamily: 'Gulzar', fontSize: 23), decoration: const InputDecoration(hintText: 'اردو متن', border: OutlineInputBorder())),
+      actions: [TextButton(onPressed: () => Navigator.pop(d), child: const Text('Cancel')), FilledButton(onPressed: () => Navigator.pop(d, c.text), child: const Text('Apply'))],
     ));
     c.dispose(); return result;
   }
 
-  Future<void> _fontDialog() async {
+  Future<void> _fontSheet() async {
     final e = controller.selected; if (e == null) return;
-    final result = await showModalBottomSheet<String>(context: context, showDragHandle: true, builder: (context) => SafeArea(child: ListView(shrinkWrap: true, children: [
-      const _SheetHeader(title: 'Urdu Fonts', subtitle: 'Choose a Nastaliq family'),
-      _fontTile('Gulzar', 'Contemporary Nastaliq', 'Gulzar', e.fontFamily), _fontTile('Noto Nastaliq Urdu', 'Google Fonts Nastaliq', 'NotoNastaliqUrdu', e.fontFamily),
+    final family = await showModalBottomSheet<String>(context: context, showDragHandle: true, builder: (_) => SafeArea(child: ListView(shrinkWrap: true, children: [
+      const _Header('Urdu Typography', 'Premium Nastaliq font families'),
+      _fontTile('Gulzar', 'Contemporary Nastaliq', 'Gulzar', e.fontFamily),
+      _fontTile('Noto Nastaliq Urdu', 'Google Fonts Nastaliq', 'NotoNastaliqUrdu', e.fontFamily),
     ])));
-    if (result != null) controller.setSelectedFont(result);
+    if (family != null) controller.setSelectedFont(family);
   }
-  Widget _fontTile(String title, String subtitle, String family, String current) {
-    final selected = current == family || (current == 'JameelNoori' && family == 'Gulzar');
-    return ListTile(leading: CircleAvatar(backgroundColor: selected ? _purple : Colors.black12, child: Icon(Icons.font_download_rounded, color: selected ? Colors.white : Colors.black54)), title: Text(title, style: TextStyle(fontFamily: family, fontSize: 22, fontWeight: FontWeight.w700)), subtitle: Text(subtitle), trailing: selected ? const Icon(Icons.check_circle_rounded, color: _purple) : null, onTap: () => Navigator.pop(context, family));
-  }
-  Future<void> _fontSizeDialog(DesignElement e) async {
-    double value = e.fontSize;
-    final result = await showDialog<double>(context: context, builder: (dialogContext) => StatefulBuilder(builder: (context, setState) => AlertDialog(
-      title: const Text('Font Size', style: TextStyle(fontWeight: FontWeight.w900)), content: Column(mainAxisSize: MainAxisSize.min, children: [Text('${value.round()} px', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: _purple)), Slider(min: 8, max: 300, divisions: 73, value: value.clamp(8, 300), onChanged: (v) => setState(() => value = v))]),
-      actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')), FilledButton(onPressed: () => Navigator.pop(dialogContext, value), child: const Text('Apply'))],
-    )));
-    if (result != null) controller.setSelectedFontSize(result);
-  }
-  Future<void> _colorDialog() async {
+  Widget _fontTile(String title, String sub, String family, String current) { final active = current == family || (current == 'JameelNoori' && family == 'Gulzar'); return ListTile(leading: CircleAvatar(backgroundColor: active ? _primary : Colors.black12, child: Icon(Icons.font_download_rounded, color: active ? Colors.white : Colors.black54)), title: Text(title, style: TextStyle(fontFamily: family, fontSize: 21, fontWeight: FontWeight.w700)), subtitle: Text(sub), trailing: active ? const Icon(Icons.check_circle_rounded, color: _primary) : null, onTap: () => Navigator.pop(context, family)); }
+  Future<void> _fontSize(DesignElement e) async { await _sliderSheet('Font Size', e.fontSize, 8, 300, (v) => '${v.round()} px', (v) => controller.setSelectedFontSize(v)); }
+  Future<void> _opacity() async { final e = controller.selected; if (e == null) return; await _sliderSheet('Opacity', e.opacity, 0, 1, (v) => '${(v * 100).round()}%', controller.setSelectedOpacity, divisions: 20); }
+  Future<void> _radius() async { final e = controller.selected; if (e == null) return; await _sliderSheet('Corner Radius', e.radius, 0, 240, (v) => '${v.round()} px', controller.setSelectedRadius); }
+
+  Future<void> _effectsSheet() async {
     final e = controller.selected; if (e == null) return;
-    final colors = [Colors.black, Colors.white, _purple, const Color(0xFF0F766E), const Color(0xFFDC2626), const Color(0xFFF59E0B), const Color(0xFF2563EB)];
-    final result = await showModalBottomSheet<Color>(context: context, showDragHandle: true, builder: (context) => SafeArea(child: Padding(padding: const EdgeInsets.all(18), child: Wrap(spacing: 14, runSpacing: 14, children: colors.map((c) => InkWell(onTap: () => Navigator.pop(context, c), borderRadius: BorderRadius.circular(30), child: CircleAvatar(backgroundColor: c, radius: 25, child: c.toARGB32() == e.colorValue ? const Icon(Icons.check, color: Colors.white) : null))).toList()))));
-    if (result != null) controller.updateSelected(colorValue: result.toARGB32());
+    await showModalBottomSheet<void>(context: context, isScrollControlled: true, showDragHandle: true, builder: (_) => _EffectsPanel(controller: controller, element: e));
   }
-  Future<void> _opacityDialog() async {
-    final e = controller.selected; if (e == null) return; double value = e.opacity;
-    final result = await showDialog<double>(context: context, builder: (dialogContext) => StatefulBuilder(builder: (context, setState) => AlertDialog(title: const Text('Opacity', style: TextStyle(fontWeight: FontWeight.w900)), content: Column(mainAxisSize: MainAxisSize.min, children: [Text('${(value * 100).round()}%', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: _purple)), Slider(value: value, min: 0, max: 1, divisions: 20, onChanged: (v) => setState(() => value = v))]), actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')), FilledButton(onPressed: () => Navigator.pop(dialogContext, value), child: const Text('Apply'))])));
-    if (result != null) controller.setSelectedOpacity(result);
-  }
-  Future<void> _radiusDialog() async {
-    final e = controller.selected; if (e == null || e.kind != ElementKind.shape) return; double value = e.radius;
-    final result = await showDialog<double>(context: context, builder: (dialogContext) => StatefulBuilder(builder: (context, setState) => AlertDialog(title: const Text('Corner Radius', style: TextStyle(fontWeight: FontWeight.w900)), content: Slider(value: value.clamp(0, 240), min: 0, max: 240, divisions: 24, onChanged: (v) => setState(() => value = v)), actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')), FilledButton(onPressed: () => Navigator.pop(dialogContext, value), child: const Text('Apply'))])));
-    if (result != null) controller.setSelectedRadius(result);
-  }
-  Future<void> _alignmentDialog() async {
-    final e = controller.selected; if (e == null || e.kind != ElementKind.text) return;
-    final result = await showModalBottomSheet<TextAlign>(context: context, showDragHandle: true, builder: (context) => SafeArea(child: Column(mainAxisSize: MainAxisSize.min, children: [const _SheetHeader(title: 'Text Alignment', subtitle: 'Set the text inside its frame'), for (final item in const [(TextAlign.right, 'Right', Icons.format_align_right_rounded), (TextAlign.center, 'Center', Icons.format_align_center_rounded), (TextAlign.left, 'Left', Icons.format_align_left_rounded), (TextAlign.justify, 'Justify', Icons.format_align_justify_rounded)]) ListTile(leading: Icon(item.$3), title: Text(item.$2), onTap: () => Navigator.pop(context, item.$1))])));
-    if (result != null) controller.setSelectedAlign(result);
-  }
-  Future<void> _directionDialog() async {
-    final e = controller.selected; if (e == null || e.kind != ElementKind.text) return;
-    final result = await showModalBottomSheet<TextDirection>(context: context, showDragHandle: true, builder: (context) => SafeArea(child: Column(mainAxisSize: MainAxisSize.min, children: [const _SheetHeader(title: 'Text Direction', subtitle: 'Control RTL / LTR layout'), ListTile(leading: const Icon(Icons.format_textdirection_r_to_l), title: const Text('Right to Left (Urdu)'), onTap: () => Navigator.pop(context, TextDirection.rtl)), ListTile(leading: const Icon(Icons.format_textdirection_l_to_r), title: const Text('Left to Right'), onTap: () => Navigator.pop(context, TextDirection.ltr))])));
-    if (result != null) controller.setSelectedDirection(result);
-  }
-  Future<void> _arrangeDialog() async {
+  Future<void> _spacingSheet() async {
     final e = controller.selected; if (e == null) return;
-    await showModalBottomSheet<void>(context: context, showDragHandle: true, builder: (context) => SafeArea(child: Column(mainAxisSize: MainAxisSize.min, children: [const _SheetHeader(title: 'Arrange', subtitle: 'Control layer order and placement'), ListTile(leading: const Icon(Icons.vertical_align_top_rounded), title: const Text('Bring to front'), onTap: () { controller.bringSelectedToFront(); Navigator.pop(context); }), ListTile(leading: const Icon(Icons.vertical_align_bottom_rounded), title: const Text('Send to back'), onTap: () { controller.sendSelectedToBack(); Navigator.pop(context); }), ListTile(leading: const Icon(Icons.center_focus_strong_rounded), title: const Text('Center on page'), onTap: () { controller.centerSelected(); Navigator.pop(context); })])));
+    double letter = e.letterSpacing, line = e.lineHeight;
+    await showModalBottomSheet<void>(context: context, showDragHandle: true, builder: (sheet) => StatefulBuilder(builder: (_, set) => SafeArea(child: Padding(padding: const EdgeInsets.fromLTRB(20, 4, 20, 20), child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const _Header('Typography Spacing', 'Fine control for Nastaliq composition'),
+      Text('Letter spacing  ${letter.toStringAsFixed(1)}'), Slider(min: -10, max: 20, divisions: 60, value: letter, onChanged: (v) => set(() => letter = v)),
+      Text('Line height  ${line.toStringAsFixed(2)}×'), Slider(min: .7, max: 3, divisions: 46, value: line, onChanged: (v) => set(() => line = v)),
+      FilledButton.icon(onPressed: () { controller.setSelectedTypography(letterSpacing: letter, lineHeight: line); Navigator.pop(sheet); }, icon: const Icon(Icons.check_rounded), label: const Text('Apply typography')), 
+    ]))));
   }
-  Future<void> _showSelectedMore() async {
+
+  Future<void> _colorSheet() async {
     final e = controller.selected; if (e == null) return;
-    await showModalBottomSheet<void>(context: context, showDragHandle: true, builder: (context) => SafeArea(child: Column(mainAxisSize: MainAxisSize.min, children: [const _SheetHeader(title: 'More options', subtitle: 'Advanced controls for this element'), ListTile(leading: const Icon(Icons.copy_outlined), title: const Text('Duplicate'), onTap: () { controller.duplicateSelected(); Navigator.pop(context); }), ListTile(leading: const Icon(Icons.flip_to_front_rounded), title: const Text('Bring to front'), onTap: () { controller.bringSelectedToFront(); Navigator.pop(context); }), ListTile(leading: const Icon(Icons.flip_to_back_rounded), title: const Text('Send to back'), onTap: () { controller.sendSelectedToBack(); Navigator.pop(context); }), ListTile(leading: Icon(e.hidden ? Icons.visibility_rounded : Icons.visibility_off_rounded), title: Text(e.hidden ? 'Show element' : 'Hide element'), onTap: () { controller.toggleSelectedHidden(); Navigator.pop(context); }), ListTile(leading: const Icon(Icons.rotate_0_degrees_ccw_rounded), title: const Text('Reset rotation'), onTap: () { controller.resetSelectedRotation(); Navigator.pop(context); })])));
+    final colors = [Colors.black, Colors.white, _primary, const Color(0xFF0F766E), const Color(0xFFDC2626), const Color(0xFFF59E0B), const Color(0xFF2563EB), const Color(0xFF7C2D12), const Color(0xFFDB2777)];
+    final color = await showModalBottomSheet<Color>(context: context, showDragHandle: true, builder: (_) => SafeArea(child: Padding(padding: const EdgeInsets.all(20), child: Wrap(spacing: 14, runSpacing: 14, children: colors.map((c) => InkWell(onTap: () => Navigator.pop(context, c), child: CircleAvatar(radius: 25, backgroundColor: c, child: c.toARGB32() == e.colorValue ? const Icon(Icons.check, color: Colors.white) : null))).toList()))));
+    if (color != null) controller.updateSelected(colorValue: color.toARGB32());
   }
-  Future<void> _showDesignTools() async {
-    await showModalBottomSheet<void>(context: context, showDragHandle: true, builder: (context) => SafeArea(child: Column(mainAxisSize: MainAxisSize.min, children: [const _SheetHeader(title: 'Design', subtitle: 'Page-level tools'), ListTile(leading: const Icon(Icons.layers_outlined), title: const Text('Pages'), onTap: () { Navigator.pop(context); _showPages(); }), ListTile(leading: const Icon(Icons.wallpaper_outlined), title: const Text('Background'), onTap: () { Navigator.pop(context); _backgroundDialog(); }), ListTile(leading: const Icon(Icons.photo_size_select_large_outlined), title: const Text('Canvas size'), onTap: () { Navigator.pop(context); _canvasSizeDialog(); })])));
+  Future<void> _alignSheet() async { final e = controller.selected; if (e == null) return; final a = await _choiceSheet<TextAlign>('Text Alignment', [TextAlign.left, TextAlign.center, TextAlign.right, TextAlign.justify], (x) => x.name); if (a != null) controller.setSelectedAlign(a); }
+  Future<void> _directionSheet() async { final d = await _choiceSheet<TextDirection>('Text Direction', [TextDirection.rtl, TextDirection.ltr], (x) => x == TextDirection.rtl ? 'Right to left (Urdu)' : 'Left to right'); if (d != null) controller.setSelectedDirection(d); }
+  Future<T?> _choiceSheet<T>(String title, List<T> values, String Function(T) label) => showModalBottomSheet<T>(context: context, showDragHandle: true, builder: (_) => SafeArea(child: ListView(shrinkWrap: true, children: [ _Header(title, 'Choose a professional layout setting'), ...values.map((v) => ListTile(title: Text(label(v), style: const TextStyle(fontWeight: FontWeight.w700)), onTap: () => Navigator.pop(context, v))) ])));
+
+  Future<void> _arrangeSheet() async { await showModalBottomSheet<void>(context: context, showDragHandle: true, builder: (_) => SafeArea(child: Wrap(children: [const _Header('Arrange', 'Precise layer and position controls'), ListTile(leading: const Icon(Icons.vertical_align_top_rounded), title: const Text('Bring to front'), onTap: () { controller.bringSelectedToFront(); Navigator.pop(context); }), ListTile(leading: const Icon(Icons.vertical_align_bottom_rounded), title: const Text('Send to back'), onTap: () { controller.sendSelectedToBack(); Navigator.pop(context); }), ListTile(leading: const Icon(Icons.center_focus_strong_rounded), title: const Text('Center on canvas'), onTap: () { controller.centerSelected(); Navigator.pop(context); })]))); }
+  Future<void> _moreSheet() async { await showModalBottomSheet<void>(context: context, showDragHandle: true, builder: (_) => SafeArea(child: Wrap(children: [const _Header('Object', 'More professional editing actions'), ListTile(leading: const Icon(Icons.copy_rounded), title: const Text('Duplicate'), onTap: () { controller.duplicateSelected(); Navigator.pop(context); }), ListTile(leading: const Icon(Icons.visibility_off_outlined), title: const Text('Hide / Show'), onTap: () { controller.toggleSelectedHidden(); Navigator.pop(context); }), ListTile(leading: const Icon(Icons.rotate_90_degrees_ccw_rounded), title: const Text('Reset rotation'), onTap: () { controller.resetSelectedRotation(); Navigator.pop(context); }), ListTile(leading: const Icon(Icons.delete_outline_rounded), title: const Text('Delete', style: TextStyle(color: Colors.red)), onTap: () { controller.deleteSelected(); Navigator.pop(context); })]))); }
+
+  Future<void> _sliderSheet(String title, double initial, double min, double max, String Function(double) display, ValueChanged<double> apply, {int? divisions}) async {
+    double value = initial.clamp(min, max);
+    await showModalBottomSheet<void>(context: context, showDragHandle: true, builder: (sheet) => StatefulBuilder(builder: (_, set) => SafeArea(child: Padding(padding: const EdgeInsets.fromLTRB(20, 4, 20, 24), child: Column(mainAxisSize: MainAxisSize.min, children: [Text(title, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900)), const SizedBox(height: 10), Text(display(value), style: const TextStyle(fontSize: 27, fontWeight: FontWeight.w900, color: _primary)), Slider(min: min, max: max, divisions: divisions, value: value, onChanged: (v) => set(() => value = v)), FilledButton.icon(onPressed: () { apply(value); Navigator.pop(sheet); }, icon: const Icon(Icons.check_rounded), label: const Text('Apply'))]))));
   }
-  Future<void> _backgroundDialog() async {
-    final colors = [Colors.white, const Color(0xFFF8FAFC), const Color(0xFF111827), const Color(0xFF1E1B4B), const Color(0xFFFEF3C7), const Color(0xFFE0F2FE)];
-    final result = await showModalBottomSheet<Color>(context: context, showDragHandle: true, builder: (context) => SafeArea(child: Padding(padding: const EdgeInsets.all(18), child: Wrap(spacing: 14, runSpacing: 14, children: colors.map((c) => InkWell(onTap: () => Navigator.pop(context, c), child: CircleAvatar(backgroundColor: c, radius: 25))).toList()))));
-    if (result != null) controller.setBackground(result);
-  }
-  Future<void> _canvasSizeDialog() async {
-    final w = TextEditingController(text: controller.page.size.width.toInt().toString()), h = TextEditingController(text: controller.page.size.height.toInt().toString());
-    final result = await showDialog<List<double>>(context: context, builder: (dialogContext) => AlertDialog(title: const Text('Canvas Size', style: TextStyle(fontWeight: FontWeight.w900)), content: Row(children: [Expanded(child: TextField(controller: w, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Width'))), const SizedBox(width: 12), Expanded(child: TextField(controller: h, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Height')))]), actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')), FilledButton(onPressed: () { final width = double.tryParse(w.text), height = double.tryParse(h.text); if (width != null && height != null) Navigator.pop(dialogContext, [width, height]); }, child: const Text('Apply'))]));
-    w.dispose(); h.dispose(); if (result != null) controller.resizeCanvas(result[0], result[1]);
-  }
-  Future<void> _pickImage() async { final result = await _imagePicker.pickImage(source: ImageSource.gallery, imageQuality: 95); if (result == null) return; controller.addImage(await result.readAsBytes()); }
-  Future<void> _saveProject() async { await _repository.save(controller.project); if (!mounted) return; ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Project saved'))); }
-  Future<void> _handleMenu(String value) async { try { if (value == 'png') await _exportService.exportPng(controller.page, _canvasKey); if (value == 'jpg') await _exportService.exportJpg(controller.page, _canvasKey); if (value == 'pdf') await _exportService.sharePdf(controller.project); if (!mounted) return; ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(value == 'pdf' ? 'PDF ready to share' : 'Export complete'))); } catch (e) { if (!mounted) return; ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export failed: $e'))); } }
-  Future<void> _showPages() async { await showModalBottomSheet<void>(context: context, showDragHandle: true, builder: (context) => SafeArea(child: Column(mainAxisSize: MainAxisSize.min, children: [const _SheetHeader(title: 'Pages', subtitle: 'Manage multi-page designs'), for (var i = 0; i < controller.project.pages.length; i++) ListTile(leading: CircleAvatar(child: Text('${i + 1}')), title: Text(controller.project.pages[i].title), selected: i == controller.currentPageIndex, onTap: () { controller.switchPage(i); Navigator.pop(context); }), const Divider(), Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [TextButton.icon(onPressed: () { controller.addPage(); Navigator.pop(context); }, icon: const Icon(Icons.add), label: const Text('Add page')), TextButton.icon(onPressed: () { controller.duplicatePage(); Navigator.pop(context); }, icon: const Icon(Icons.copy), label: const Text('Duplicate')), TextButton.icon(onPressed: controller.project.pages.length > 1 ? () { controller.deletePage(); Navigator.pop(context); } : null, icon: const Icon(Icons.delete_outline), label: const Text('Delete'))])]))); }
+
+  Future<void> _pagesSheet() async { await showModalBottomSheet<void>(context: context, showDragHandle: true, builder: (_) => SafeArea(child: Column(mainAxisSize: MainAxisSize.min, children: [const _Header('Pages', 'Multi-page project workspace'), ...List.generate(controller.project.pages.length, (i) => ListTile(leading: CircleAvatar(backgroundColor: i == controller.currentPageIndex ? _primary : Colors.black12, child: Text('${i + 1}', style: TextStyle(color: i == controller.currentPageIndex ? Colors.white : Colors.black87, fontWeight: FontWeight.w800))), title: Text(controller.project.pages[i].title), trailing: i == controller.currentPageIndex ? const Icon(Icons.check_circle_rounded, color: _primary) : null, onTap: () { controller.switchPage(i); Navigator.pop(context); })), const Divider(), ListTile(leading: const Icon(Icons.add_circle_outline_rounded), title: const Text('Add page'), onTap: () { controller.addPage(); Navigator.pop(context); }), ListTile(leading: const Icon(Icons.copy_all_outlined), title: const Text('Duplicate current page'), onTap: () { controller.duplicatePage(); Navigator.pop(context); }), ListTile(leading: const Icon(Icons.delete_outline_rounded), title: const Text('Delete current page'), enabled: controller.project.pages.length > 1, onTap: () { controller.deletePage(); Navigator.pop(context); })]))); }
+
+  Future<void> _designSheet() async { await showModalBottomSheet<void>(context: context, showDragHandle: true, builder: (_) => SafeArea(child: Wrap(children: [const _Header('Canvas & Design', 'Set up your artboard before creating'), ListTile(leading: const Icon(Icons.palette_outlined), title: const Text('Background'), onTap: () { Navigator.pop(context); _backgroundSheet(); }), ListTile(leading: const Icon(Icons.aspect_ratio_rounded), title: const Text('Canvas size'), onTap: () { Navigator.pop(context); _canvasSizeDialog(); }), ListTile(leading: const Icon(Icons.layers_outlined), title: const Text('Pages'), onTap: () { Navigator.pop(context); _pagesSheet(); })]))); }
+  Future<void> _backgroundSheet() async { final colors = [Colors.white, const Color(0xFF0F172A), const Color(0xFFF8FAFC), const Color(0xFFF5F3FF), const Color(0xFFFEF3C7), const Color(0xFFE0F2FE), const Color(0xFFFCE7F3)]; final c = await showModalBottomSheet<Color>(context: context, showDragHandle: true, builder: (_) => Padding(padding: const EdgeInsets.all(20), child: Wrap(spacing: 14, runSpacing: 14, children: colors.map((x) => InkWell(onTap: () => Navigator.pop(context, x), child: CircleAvatar(radius: 26, backgroundColor: x))).toList())); if (c != null) controller.setBackground(c); }
+  Future<void> _canvasSizeDialog() async { final w = TextEditingController(text: controller.page.size.width.round().toString()); final h = TextEditingController(text: controller.page.size.height.round().toString()); final ok = await showDialog<bool>(context: context, builder: (d) => AlertDialog(title: const Text('Canvas Size', style: TextStyle(fontWeight: FontWeight.w900)), content: Row(children: [Expanded(child: TextField(controller: w, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Width'))), const SizedBox(width: 12), Expanded(child: TextField(controller: h, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Height')))]), actions: [TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Cancel')), FilledButton(onPressed: () => Navigator.pop(d, true), child: const Text('Resize'))])); if (ok == true) { final width = double.tryParse(w.text) ?? 1080; final height = double.tryParse(h.text) ?? 1080; controller.resizeCanvas(width, height); } w.dispose(); h.dispose(); }
+
+  Future<void> _pickImage() async { final x = await _picker.pickImage(source: ImageSource.gallery); if (x == null) return; controller.addImage(await x.readAsBytes()); }
+  Future<void> _save() async { try { await _repo.save(controller.project); if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Project saved locally'))); } catch (e) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Save failed: $e'))); } }
+  Future<void> _exportMenu(String value) async { try { if (value == 'pdf') { await _export.sharePdf(controller.project); } else if (value == 'png') { await _export.exportPng(controller.page, _canvasKey); } else { await _export.exportJpg(controller.page, _canvasKey); } if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(value == 'pdf' ? 'PDF ready to share' : 'Export saved to gallery'))); } catch (e) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export failed: $e'))); } }
 }
 
-class _SheetHeader extends StatelessWidget {
+class _Header extends StatelessWidget {
   final String title, subtitle;
-  const _SheetHeader({required this.title, required this.subtitle});
+  const _Header(this.title, this.subtitle);
   @override
-  Widget build(BuildContext context) => Padding(padding: const EdgeInsets.fromLTRB(20, 6, 20, 8), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900)), const SizedBox(height: 3), Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.black54))]));
+  Widget build(BuildContext context) => Padding(padding: const EdgeInsets.fromLTRB(20, 8, 20, 8), child: Row(children: [Container(width: 42, height: 42, decoration: BoxDecoration(color: const Color(0xFF6D28D9).withValues(alpha: .10), borderRadius: BorderRadius.circular(13)), child: const Icon(Icons.auto_awesome_rounded, color: Color(0xFF6D28D9))), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)), const SizedBox(height: 2), Text(subtitle, style: const TextStyle(fontSize: 11, color: Colors.black54, fontWeight: FontWeight.w600))]))]));
+}
+
+class _EffectsPanel extends StatefulWidget {
+  final WorkspaceController controller;
+  final DesignElement element;
+  const _EffectsPanel({required this.controller, required this.element});
+  @override
+  State<_EffectsPanel> createState() => _EffectsPanelState();
+}
+
+class _EffectsPanelState extends State<_EffectsPanel> {
+  late double stroke, blur, dx, dy;
+  late Color strokeColor, shadowColor;
+  @override
+  void initState() { super.initState(); final e = widget.element; stroke = e.strokeWidth; blur = e.shadowBlur; dx = e.shadowOffsetX; dy = e.shadowOffsetY; strokeColor = Color(e.strokeColorValue); shadowColor = Color(e.shadowColorValue); }
+  @override
+  Widget build(BuildContext context) => SafeArea(child: Padding(padding: const EdgeInsets.fromLTRB(20, 4, 20, 24), child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+    const _Header('Effects Studio', 'Stroke + soft shadow controls'),
+    _slider('Stroke', stroke, 0, 40, (v) => setState(() => stroke = v)),
+    _colorRow('Stroke color', strokeColor, (c) => setState(() => strokeColor = c)),
+    const Divider(height: 20),
+    _slider('Shadow blur', blur, 0, 80, (v) => setState(() => blur = v)),
+    _slider('Shadow X', dx, -100, 100, (v) => setState(() => dx = v)),
+    _slider('Shadow Y', dy, -100, 100, (v) => setState(() => dy = v)),
+    _colorRow('Shadow color', shadowColor, (c) => setState(() => shadowColor = c)),
+    const SizedBox(height: 10),
+    SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: () { widget.controller.setSelectedStroke(width: stroke, colorValue: strokeColor.toARGB32()); widget.controller.setSelectedShadow(blur: blur, offsetX: dx, offsetY: dy, colorValue: shadowColor.toARGB32()); Navigator.pop(context); }, icon: const Icon(Icons.check_rounded), label: const Text('Apply effects')),
+  ])));
+  Widget _slider(String label, double value, double min, double max, ValueChanged<double> onChanged) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('$label  ${value.toStringAsFixed(1)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800)), Slider(min: min, max: max, value: value, onChanged: onChanged)]);
+  Widget _colorRow(String label, Color color, ValueChanged<Color> onChanged) => Row(children: [Expanded(child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700))), InkWell(onTap: () async { final c = await showDialog<Color>(context: context, builder: (d) => AlertDialog(title: Text(label), content: Wrap(spacing: 10, runSpacing: 10, children: [Colors.black, Colors.white, const Color(0xFF6D28D9), const Color(0xFF0F766E), const Color(0xFFDC2626), const Color(0xFFF59E0B), const Color(0xFF2563EB)].map((x) => InkWell(onTap: () => Navigator.pop(d, x), child: CircleAvatar(backgroundColor: x, radius: 21))).toList()))); if (c != null) onChanged(c); }, child: CircleAvatar(backgroundColor: color, radius: 17, child: const Icon(Icons.colorize_rounded, size: 16, color: Colors.white))) ]);
 }
