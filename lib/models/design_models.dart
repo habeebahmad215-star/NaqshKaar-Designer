@@ -76,7 +76,7 @@ class DesignElement {
     this.hidden = false,
     this.colorValue = 0xFFD4AF37,
     this.text = '',
-    this.fontFamily = 'JameelNoori',
+    this.fontFamily = 'Gulzar',
     this.fontSize = 56,
     this.bold = false,
     this.italic = false,
@@ -110,33 +110,22 @@ class DesignElement {
         'bold': bold,
         'italic': italic,
         'textAlign': textAlign.index,
-        'textDirection':
-            textDirection == TextDirection.rtl ? 'rtl' : 'ltr',
-        'imageBytes':
-            imageBytes == null ? null : base64Encode(imageBytes!),
+        'textDirection': textDirection == TextDirection.rtl ? 'rtl' : 'ltr',
+        'imageBytes': imageBytes == null ? null : base64Encode(imageBytes!),
         'radius': radius,
       };
 
   factory DesignElement.fromJson(Map<String, dynamic> json) {
     final kindName = json['kind']?.toString();
+    final kind = ElementKind.values.where((e) => e.name == kindName).firstOrNull ?? ElementKind.text;
 
-    final kind = ElementKind.values
-            .where((e) => e.name == kindName)
-            .firstOrNull ??
-        ElementKind.text;
-
-    final alignIndex =
-        (json['textAlign'] as num?)?.toInt() ?? TextAlign.center.index;
-
-    final align = alignIndex >= 0 &&
-            alignIndex < TextAlign.values.length
+    final alignIndex = (json['textAlign'] as num?)?.toInt() ?? TextAlign.center.index;
+    final align = alignIndex >= 0 && alignIndex < TextAlign.values.length
         ? TextAlign.values[alignIndex]
         : TextAlign.center;
 
     Uint8List? bytes;
-
     final raw = json['imageBytes'];
-
     if (raw is String && raw.isNotEmpty) {
       try {
         bytes = base64Decode(raw);
@@ -153,27 +142,19 @@ class DesignElement {
       rotation: (json['rotation'] as num?)?.toDouble() ?? 0,
       scaleX: (json['scaleX'] as num?)?.toDouble() ?? 1,
       scaleY: (json['scaleY'] as num?)?.toDouble() ?? 1,
-      opacity:
-          ((json['opacity'] as num?)?.toDouble() ?? 1).clamp(0, 1),
+      opacity: ((json['opacity'] as num?)?.toDouble() ?? 1).clamp(0, 1),
       locked: json['locked'] as bool? ?? false,
       hidden: json['hidden'] as bool? ?? false,
-      colorValue:
-          (json['color'] as num?)?.toInt() ?? 0xFFD4AF37,
+      colorValue: (json['color'] as num?)?.toInt() ?? 0xFFD4AF37,
       text: json['text']?.toString() ?? '',
-      fontFamily:
-          json['fontFamily']?.toString() ?? 'JameelNoori',
-      fontSize:
-          (json['fontSize'] as num?)?.toDouble() ?? 56,
+      fontFamily: json['fontFamily']?.toString() ?? 'Gulzar',
+      fontSize: (json['fontSize'] as num?)?.toDouble() ?? 56,
       bold: json['bold'] as bool? ?? false,
       italic: json['italic'] as bool? ?? false,
       textAlign: align,
-      textDirection:
-          json['textDirection'] == 'ltr'
-              ? TextDirection.ltr
-              : TextDirection.rtl,
+      textDirection: json['textDirection'] == 'ltr' ? TextDirection.ltr : TextDirection.rtl,
       imageBytes: bytes,
-      radius:
-          (json['radius'] as num?)?.toDouble() ?? 18,
+      radius: (json['radius'] as num?)?.toDouble() ?? 18,
     );
   }
 }
@@ -197,28 +178,19 @@ class DesignPage {
         'title': title,
         'size': size.toJson(),
         'background': background.toARGB32(),
-        'elements':
-            elements.map((e) => e.toJson()).toList(),
+        'elements': elements.map((e) => e.toJson()).toList(),
       };
 
-  factory DesignPage.fromJson(Map<String, dynamic> json) =>
-      DesignPage(
+  factory DesignPage.fromJson(Map<String, dynamic> json) => DesignPage(
         title: json['title']?.toString() ?? 'Page',
-        size: CanvasSize.fromJson(
-          json['size'] as Map<String, dynamic>?,
-        ),
+        size: CanvasSize.fromJson(json['size'] as Map<String, dynamic>?),
         background: Color(
-          (json['background'] as num?)?.toInt() ??
-              Colors.white.toARGB32(),
+          (json['background'] as num?)?.toInt() ?? Colors.white.toARGB32(),
         ),
         elements: (json['elements'] is List)
             ? (json['elements'] as List)
                 .whereType<Map>()
-                .map(
-                  (e) => DesignElement.fromJson(
-                    Map<String, dynamic>.from(e),
-                  ),
-                )
+                .map((e) => DesignElement.fromJson(Map<String, dynamic>.from(e)))
                 .toList()
             : [],
       );
@@ -235,32 +207,24 @@ class ProjectModel {
     required this.name,
     required this.pages,
     int? lastModified,
-  }) : lastModified =
-            lastModified ?? DateTime.now().millisecondsSinceEpoch;
+  }) : lastModified = lastModified ?? DateTime.now().millisecondsSinceEpoch;
 
   Map<String, dynamic> toJson() => {
         'schemaVersion': kSchemaVersion,
         'id': id,
         'name': name,
         'lastModified': lastModified,
-        'pages':
-            pages.map((p) => p.toJson()).toList(),
+        'pages': pages.map((p) => p.toJson()).toList(),
       };
 
-  factory ProjectModel.fromJson(Map<String, dynamic> json) =>
-      ProjectModel(
+  factory ProjectModel.fromJson(Map<String, dynamic> json) => ProjectModel(
         id: json['id']?.toString() ?? '',
         name: json['name']?.toString() ?? 'Project',
-        lastModified:
-            (json['lastModified'] as num?)?.toInt(),
+        lastModified: (json['lastModified'] as num?)?.toInt(),
         pages: (json['pages'] is List)
             ? (json['pages'] as List)
                 .whereType<Map>()
-                .map(
-                  (p) => DesignPage.fromJson(
-                    Map<String, dynamic>.from(p),
-                  ),
-                )
+                .map((p) => DesignPage.fromJson(Map<String, dynamic>.from(p)))
                 .toList()
             : [],
       );
