@@ -35,7 +35,6 @@ class WorkspaceController extends ChangeNotifier {
   }
 
   DesignPage get page => project.pages[currentPageIndex];
-
   List<DesignElement> get elements => page.elements;
 
   static String _newId(String prefix) {
@@ -45,11 +44,7 @@ class WorkspaceController extends ChangeNotifier {
 
   void _checkpoint() {
     _history.add(ProjectModel.fromJson(project.toJson()));
-
-    if (_history.length > 30) {
-      _history.removeAt(0);
-    }
-
+    if (_history.length > 30) _history.removeAt(0);
     _future.clear();
   }
 
@@ -59,40 +54,23 @@ class WorkspaceController extends ChangeNotifier {
   }
 
   bool get canUndo => _history.isNotEmpty;
-
   bool get canRedo => _future.isNotEmpty;
 
   void undo() {
     if (!canUndo) return;
-
-    _future.add(
-      ProjectModel.fromJson(project.toJson()),
-    );
-
+    _future.add(ProjectModel.fromJson(project.toJson()));
     project = _history.removeLast();
-
-    currentPageIndex =
-        currentPageIndex.clamp(0, project.pages.length - 1);
-
+    currentPageIndex = currentPageIndex.clamp(0, project.pages.length - 1);
     selectedId = null;
-
     notifyListeners();
   }
 
   void redo() {
     if (!canRedo) return;
-
-    _history.add(
-      ProjectModel.fromJson(project.toJson()),
-    );
-
+    _history.add(ProjectModel.fromJson(project.toJson()));
     project = _future.removeLast();
-
-    currentPageIndex =
-        currentPageIndex.clamp(0, project.pages.length - 1);
-
+    currentPageIndex = currentPageIndex.clamp(0, project.pages.length - 1);
     selectedId = null;
-
     notifyListeners();
   }
 
@@ -106,7 +84,6 @@ class WorkspaceController extends ChangeNotifier {
     bool rtl = true,
   }) {
     _checkpoint();
-
     final e = DesignElement(
       id: _newId('text'),
       kind: ElementKind.text,
@@ -116,20 +93,16 @@ class WorkspaceController extends ChangeNotifier {
       height: 150,
       text: text,
       fontSize: 64,
-      textDirection:
-          rtl ? TextDirection.rtl : TextDirection.ltr,
+      textDirection: rtl ? TextDirection.rtl : TextDirection.ltr,
     );
-
     page.elements.add(e);
     selectedId = e.id;
     _changed();
-
     return e;
   }
 
   DesignElement addShape() {
     _checkpoint();
-
     final e = DesignElement(
       id: _newId('shape'),
       kind: ElementKind.shape,
@@ -139,17 +112,14 @@ class WorkspaceController extends ChangeNotifier {
       height: 220,
       colorValue: const Color(0xFF7C3AED).toARGB32(),
     );
-
     page.elements.add(e);
     selectedId = e.id;
     _changed();
-
     return e;
   }
 
   DesignElement addImage(Uint8List bytes) {
     _checkpoint();
-
     final e = DesignElement(
       id: _newId('image'),
       kind: ElementKind.image,
@@ -159,11 +129,9 @@ class WorkspaceController extends ChangeNotifier {
       height: page.size.height * .45,
       imageBytes: bytes,
     );
-
     page.elements.add(e);
     selectedId = e.id;
     _changed();
-
     return e;
   }
 
@@ -177,182 +145,210 @@ class WorkspaceController extends ChangeNotifier {
     int? colorValue,
   }) {
     final e = selected;
-
     if (e == null || e.locked) return;
-
     _checkpoint();
-
     if (x != null) e.x = x;
     if (y != null) e.y = y;
-
-    if (width != null) {
-      e.width = width.clamp(
-        20,
-        page.size.width * 2,
-      );
-    }
-
-    if (height != null) {
-      e.height = height.clamp(
-        20,
-        page.size.height * 2,
-      );
-    }
-
-    if (rotation != null) {
-      e.rotation = rotation;
-    }
-
-    if (opacity != null) {
-      e.opacity = opacity.clamp(0, 1);
-    }
-
-    if (colorValue != null) {
-      e.colorValue = colorValue;
-    }
-
+    if (width != null) e.width = width.clamp(20, page.size.width * 2);
+    if (height != null) e.height = height.clamp(20, page.size.height * 2);
+    if (rotation != null) e.rotation = rotation;
+    if (opacity != null) e.opacity = opacity.clamp(0, 1);
+    if (colorValue != null) e.colorValue = colorValue;
     _changed();
   }
 
-  DesignElement? get selected =>
-      selectedId == null
-          ? null
-          : elements
-              .where((e) => e.id == selectedId)
-              .firstOrNull;
+  void moveSelectedBy(double dx, double dy) {
+    final e = selected;
+    if (e == null || e.locked) return;
+    e.x = (e.x + dx).clamp(-e.width * .75, page.size.width - e.width * .25);
+    e.y = (e.y + dy).clamp(-e.height * .75, page.size.height - e.height * .25);
+    _changed();
+  }
+
+  void finishContinuousEdit() {
+    // The live drag updates are already reflected in the current model.
+    // A checkpoint is created before the next discrete edit, keeping undo usable.
+    notifyListeners();
+  }
+
+  void editSelectedText(String value) {
+    final e = selected;
+    if (e == null || e.kind != ElementKind.text || e.locked) return;
+    _checkpoint();
+    e.text = value;
+    _changed();
+  }
+
+  void setSelectedFontSize(double value) {
+    final e = selected;
+    if (e == null || e.kind != ElementKind.text || e.locked) return;
+    _checkpoint();
+    e.fontSize = value.clamp(8, 300);
+    _changed();
+  }
+
+  void setSelectedFont(String family) {
+    final e = selected;
+    if (e == null || e.kind != ElementKind.text || e.locked) return;
+    _checkpoint();
+    e.fontFamily = family;
+    _changed();
+  }
+
+  void toggleSelectedBold() {
+    final e = selected;
+    if (e == null || e.kind != ElementKind.text || e.locked) return;
+    _checkpoint();
+    e.bold = !e.bold;
+    _changed();
+  }
+
+  void toggleSelectedItalic() {
+    final e = selected;
+    if (e == null || e.kind != ElementKind.text || e.locked) return;
+    _checkpoint();
+    e.italic = !e.italic;
+    _changed();
+  }
+
+  void setSelectedAlign(TextAlign align) {
+    final e = selected;
+    if (e == null || e.kind != ElementKind.text || e.locked) return;
+    _checkpoint();
+    e.textAlign = align;
+    _changed();
+  }
+
+  void setSelectedDirection(TextDirection direction) {
+    final e = selected;
+    if (e == null || e.kind != ElementKind.text || e.locked) return;
+    _checkpoint();
+    e.textDirection = direction;
+    _changed();
+  }
+
+  void toggleSelectedLock() {
+    final e = selected;
+    if (e == null) return;
+    _checkpoint();
+    e.locked = !e.locked;
+    _changed();
+  }
+
+  void toggleSelectedHidden() {
+    final e = selected;
+    if (e == null) return;
+    _checkpoint();
+    e.hidden = !e.hidden;
+    _changed();
+  }
+
+  void bringSelectedToFront() {
+    final e = selected;
+    if (e == null) return;
+    final index = elements.indexOf(e);
+    if (index < 0 || index == elements.length - 1) return;
+    _checkpoint();
+    elements.removeAt(index);
+    elements.add(e);
+    _changed();
+  }
+
+  void sendSelectedToBack() {
+    final e = selected;
+    if (e == null) return;
+    final index = elements.indexOf(e);
+    if (index <= 0) return;
+    _checkpoint();
+    elements.removeAt(index);
+    elements.insert(0, e);
+    _changed();
+  }
+
+  DesignElement? get selected => selectedId == null
+      ? null
+      : elements.where((e) => e.id == selectedId).firstOrNull;
 
   void deleteSelected() {
     final id = selectedId;
-
     if (id == null) return;
-
-    final index =
-        elements.indexWhere((e) => e.id == id);
-
+    final index = elements.indexWhere((e) => e.id == id);
     if (index < 0) return;
-
     _checkpoint();
-
     elements.removeAt(index);
     selectedId = null;
-
     _changed();
   }
 
   void duplicateSelected() {
     final e = selected;
-
     if (e == null) return;
-
     _checkpoint();
-
-    final copy = e.clone()
-      ..id = _newId('element');
-
+    final copy = e.clone()..id = _newId('element');
     copy.x += 24;
     copy.y += 24;
-
     elements.add(copy);
     selectedId = copy.id;
-
     _changed();
   }
 
   void setBackground(Color color) {
     _checkpoint();
-
     page.background = color;
-
     _changed();
   }
 
-  void resizeCanvas(
-    double width,
-    double height,
-  ) {
+  void resizeCanvas(double width, double height) {
     if (width < 64 || height < 64) return;
-
     _checkpoint();
-
     final old = page.size;
-
     final sx = width / old.width;
     final sy = height / old.height;
-
     page.size = CanvasSize(width, height);
-
     for (final e in elements) {
       e.x *= sx;
       e.y *= sy;
       e.width *= sx;
       e.height *= sy;
     }
-
     _changed();
   }
 
   void addPage() {
     _checkpoint();
-
     project.pages.add(
       DesignPage(
         title: 'Page ${project.pages.length + 1}',
         size: page.size,
       ),
     );
-
-    currentPageIndex =
-        project.pages.length - 1;
-
+    currentPageIndex = project.pages.length - 1;
     selectedId = null;
-
     _changed();
   }
 
   void duplicatePage() {
     _checkpoint();
-
-    final copy = page.clone()
-      ..title = '${page.title} Copy';
-
-    project.pages.insert(
-      currentPageIndex + 1,
-      copy,
-    );
-
+    final copy = page.clone()..title = '${page.title} Copy';
+    project.pages.insert(currentPageIndex + 1, copy);
     currentPageIndex++;
     selectedId = null;
-
     _changed();
   }
 
   void deletePage() {
     if (project.pages.length <= 1) return;
-
     _checkpoint();
-
     project.pages.removeAt(currentPageIndex);
-
-    currentPageIndex =
-        currentPageIndex.clamp(
-      0,
-      project.pages.length - 1,
-    );
-
+    currentPageIndex = currentPageIndex.clamp(0, project.pages.length - 1);
     selectedId = null;
-
     _changed();
   }
 
   void switchPage(int index) {
-    if (index < 0 ||
-        index >= project.pages.length) {
-      return;
-    }
-
+    if (index < 0 || index >= project.pages.length) return;
     currentPageIndex = index;
     selectedId = null;
-
     notifyListeners();
   }
 }
