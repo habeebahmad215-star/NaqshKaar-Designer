@@ -44,20 +44,15 @@ class ExportService {
     await Gal.putImageBytes(bytes, name: name);
   }
 
-  // Compatibility helpers used by the current workspace export menu.
-  Future<void> exportPng(ProjectModel project, GlobalKey key) async {
-    if (project.pages.isEmpty) throw StateError('Project has no pages.');
-    final page = project.pages.first;
+  Future<void> exportPng(DesignPage page, GlobalKey key) async {
     final bytes = await capturePng(key, page.size.width, page.size.width);
-    await savePng(bytes, '${_safeName(project.name)}.png');
+    await savePng(bytes, 'naqshkaar_design.png');
   }
 
-  Future<void> exportJpg(ProjectModel project, GlobalKey key) async {
-    if (project.pages.isEmpty) throw StateError('Project has no pages.');
-    final page = project.pages.first;
+  Future<void> exportJpg(DesignPage page, GlobalKey key) async {
     final png = await capturePng(key, page.size.width, page.size.width);
     final jpg = await pngToJpeg(png);
-    await saveJpeg(jpg, '${_safeName(project.name)}.jpg');
+    await saveJpeg(jpg, 'naqshkaar_design.jpg');
   }
 
   String _safeName(String value) {
@@ -74,36 +69,53 @@ class ExportService {
           pageFormat: PdfPageFormat(page.size.width, page.size.height),
           margin: pw.EdgeInsets.zero,
           build: (_) => pw.Container(
+            width: page.size.width,
+            height: page.size.height,
             color: PdfColor.fromInt(page.background.toARGB32()),
             child: pw.Stack(
               children: [
                 for (final e in page.elements.where((e) => !e.hidden))
                   if (e.kind == ElementKind.shape)
                     pw.Positioned(
-                      left: e.x, top: e.y, width: e.width, height: e.height,
-                      child: pw.Container(
-                        decoration: pw.BoxDecoration(
-                          color: PdfColor.fromInt(e.colorValue),
-                          borderRadius: pw.BorderRadius.circular(e.radius),
+                      left: e.x,
+                      top: e.y,
+                      child: pw.SizedBox(
+                        width: e.width,
+                        height: e.height,
+                        child: pw.Container(
+                          decoration: pw.BoxDecoration(
+                            color: PdfColor.fromInt(e.colorValue),
+                            borderRadius: pw.BorderRadius.circular(e.radius),
+                          ),
                         ),
                       ),
                     )
                   else if (e.kind == ElementKind.image && e.imageBytes != null)
                     pw.Positioned(
-                      left: e.x, top: e.y, width: e.width, height: e.height,
-                      child: pw.Image(pw.MemoryImage(e.imageBytes!), fit: pw.BoxFit.fill),
+                      left: e.x,
+                      top: e.y,
+                      child: pw.SizedBox(
+                        width: e.width,
+                        height: e.height,
+                        child: pw.Image(pw.MemoryImage(e.imageBytes!), fit: pw.BoxFit.fill),
+                      ),
                     )
                   else if (e.kind == ElementKind.text)
                     pw.Positioned(
-                      left: e.x, top: e.y, width: e.width, height: e.height,
-                      child: pw.Text(
-                        e.text,
-                        textAlign: _pdfAlign(e.textAlign),
-                        style: pw.TextStyle(
-                          fontSize: e.fontSize,
-                          fontWeight: e.bold ? pw.FontWeight.bold : pw.FontWeight.normal,
-                          fontStyle: e.italic ? pw.FontStyle.italic : pw.FontStyle.normal,
-                          color: PdfColor.fromInt(e.colorValue),
+                      left: e.x,
+                      top: e.y,
+                      child: pw.SizedBox(
+                        width: e.width,
+                        height: e.height,
+                        child: pw.Text(
+                          e.text,
+                          textAlign: _pdfAlign(e.textAlign),
+                          style: pw.TextStyle(
+                            fontSize: e.fontSize,
+                            fontWeight: e.bold ? pw.FontWeight.bold : pw.FontWeight.normal,
+                            fontStyle: e.italic ? pw.FontStyle.italic : pw.FontStyle.normal,
+                            color: PdfColor.fromInt(e.colorValue),
+                          ),
                         ),
                       ),
                     ),
@@ -118,10 +130,16 @@ class ExportService {
 
   pw.TextAlign _pdfAlign(TextAlign align) {
     switch (align) {
-      case TextAlign.left: return pw.TextAlign.left;
-      case TextAlign.right: return pw.TextAlign.right;
-      case TextAlign.justify: return pw.TextAlign.justify;
-      case TextAlign.center: return pw.TextAlign.center;
+      case TextAlign.left:
+      case TextAlign.start:
+        return pw.TextAlign.left;
+      case TextAlign.right:
+      case TextAlign.end:
+        return pw.TextAlign.right;
+      case TextAlign.justify:
+        return pw.TextAlign.justify;
+      case TextAlign.center:
+        return pw.TextAlign.center;
     }
   }
 }
