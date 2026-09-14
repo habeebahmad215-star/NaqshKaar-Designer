@@ -43,9 +43,36 @@ class WorkspaceController extends ChangeNotifier {
 
   void centerSelected() { final e = selected; if (e == null || e.locked) return; _checkpoint(); e.x = (page.size.width - e.width) / 2; e.y = (page.size.height - e.height) / 2; _changed(); }
   void startContinuousEdit() { if (_continuousCheckpointActive) return; final e = selected; if (e == null || e.locked) return; _checkpoint(); _continuousCheckpointActive = true; }
-  void moveSelectedBy(double dx, double dy) { final e = selected; if (e == null || e.locked) return; e.x = (e.x + dx).clamp(-e.width * .75, page.size.width - e.width * .25); e.y = (e.y + dy).clamp(-e.height * .75, page.size.height - e.height * .25); _changed(); }
+  void moveSelectedBy(double dx, double dy) {
+    final e = selected;
+    if (e == null || e.locked) return;
+    var nextX = (e.x + dx).clamp(-e.width * .75, page.size.width - e.width * .25).toDouble();
+    var nextY = (e.y + dy).clamp(-e.height * .75, page.size.height - e.height * .25).toDouble();
+    const snap = 12.0;
+    final centerX = (page.size.width - e.width) / 2;
+    final centerY = (page.size.height - e.height) / 2;
+    final rightX = page.size.width - e.width;
+    final bottomY = page.size.height - e.height;
+    for (final target in [0.0, centerX, rightX]) {
+      if ((nextX - target).abs() <= snap) { nextX = target; break; }
+    }
+    for (final target in [0.0, centerY, bottomY]) {
+      if ((nextY - target).abs() <= snap) { nextY = target; break; }
+    }
+    e.x = nextX;
+    e.y = nextY;
+    _changed();
+  }
   void resizeSelectedFromHandle(String handle, double dx, double dy) { final e = selected; if (e == null || e.locked) return; final c = math.cos(e.rotation), s = math.sin(e.rotation); final localDx = dx * c + dy * s, localDy = -dx * s + dy * c; const minSize = 32.0; double newWidth = e.width, newHeight = e.height; if (handle.contains('right')) newWidth += localDx; if (handle.contains('left')) newWidth -= localDx; if (handle.contains('bottom')) newHeight += localDy; if (handle.contains('top')) newHeight -= localDy; newWidth = newWidth.clamp(minSize, page.size.width * 2); newHeight = newHeight.clamp(minSize, page.size.height * 2); final shiftX = handle.contains('left') ? e.width - newWidth : 0.0; final shiftY = handle.contains('top') ? e.height - newHeight : 0.0; e.x += shiftX * c - shiftY * s; e.y += shiftX * s + shiftY * c; e.width = newWidth; e.height = newHeight; _changed(); }
-  void rotateSelectedTo(double angle) { final e = selected; if (e == null || e.locked) return; e.rotation = angle; _changed(); }
+  void rotateSelectedTo(double angle) {
+    final e = selected;
+    if (e == null || e.locked) return;
+    const step = math.pi / 12;
+    const threshold = math.pi / 72;
+    final snapped = (angle / step).round() * step;
+    e.rotation = (angle - snapped).abs() <= threshold ? snapped : angle;
+    _changed();
+  }
   void finishContinuousEdit() { _continuousCheckpointActive = false; notifyListeners(); }
 
   void editSelectedText(String value) { final e = selected; if (e == null || e.kind != ElementKind.text || e.locked) return; _checkpoint(); e.text = value; _changed(); }
