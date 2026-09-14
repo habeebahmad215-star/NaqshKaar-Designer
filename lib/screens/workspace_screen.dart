@@ -11,9 +11,14 @@ import '../state/workspace_controller.dart';
 import '../widgets/design_canvas.dart';
 
 class WorkspaceScreen extends StatefulWidget {
-  final CanvasSize size;
+  final CanvasSize? size;
+  final ProjectModel? initialProject;
 
-  const WorkspaceScreen({super.key, required this.size});
+  const WorkspaceScreen({
+    super.key,
+    this.size,
+    this.initialProject,
+  });
 
   @override
   State<WorkspaceScreen> createState() => _WorkspaceScreenState();
@@ -25,15 +30,20 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   final ExportService _exportService = ExportService();
   final ProjectRepository _repository = ProjectRepository();
   final ImagePicker _imagePicker = ImagePicker();
+  final TransformationController _viewTransform = TransformationController();
 
   @override
   void initState() {
     super.initState();
-    controller = WorkspaceController(newSize: widget.size);
+    controller = WorkspaceController(
+      initial: widget.initialProject,
+      newSize: widget.size,
+    );
   }
 
   @override
   void dispose() {
+    _viewTransform.dispose();
     controller.dispose();
     super.dispose();
   }
@@ -47,7 +57,10 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
           backgroundColor: const Color(0xFFF1F3F8),
           appBar: _appBar(),
           body: Column(
-            children: [Expanded(child: _editorArea()), _bottomToolbar()],
+            children: [
+              Expanded(child: _editorArea()),
+              _bottomToolbar(),
+            ],
           ),
         );
       },
@@ -59,14 +72,17 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
       elevation: 0,
       backgroundColor: Colors.white,
       surfaceTintColor: Colors.white,
-      titleSpacing: 8,
+      titleSpacing: 4,
       leading: IconButton(
+        tooltip: 'Back',
         icon: const Icon(Icons.arrow_back_rounded),
         onPressed: () => Navigator.pop(context),
       ),
-      title: const Text(
-        'NaqshKaar Designer',
-        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+      title: Text(
+        controller.project.name,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
       ),
       actions: [
         IconButton(
@@ -85,6 +101,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
           icon: const Icon(Icons.redo_rounded),
         ),
         PopupMenuButton<String>(
+          tooltip: 'Export',
           onSelected: _handleMenu,
           itemBuilder: (context) => const [
             PopupMenuItem(value: 'png', child: Text('Export PNG')),
@@ -100,33 +117,61 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     final page = controller.page;
     return LayoutBuilder(
       builder: (context, constraints) {
-        final availableWidth = constraints.maxWidth - 32;
-        final availableHeight = constraints.maxHeight - 32;
-        final scaleX = availableWidth / page.size.width;
-        final scaleY = availableHeight / page.size.height;
-        final scale = scaleX < scaleY ? scaleX : scaleY;
+        final availableWidth = (constraints.maxWidth - 28).clamp(120.0, double.infinity);
+        final availableHeight = (constraints.maxHeight - 28).clamp(120.0, double.infinity);
+        final baseScale = mathMin(
+          availableWidth / page.size.width,
+          availableHeight / page.size.height,
+        ).clamp(.05, 1.0);
 
-        return Center(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: InteractiveViewer(
-              minScale: .25,
-              maxScale: 4,
-              boundaryMargin: const EdgeInsets.all(100),
-              child: Transform.scale(
-                scale: scale,
-                alignment: Alignment.topLeft,
-                child: SizedBox(
-                  width: page.size.width,
-                  height: page.size.height,
-                  child: DesignCanvas(
-                    controller: controller,
-                    repaintKey: _canvasKey,
+        return AnimatedBuilder(
+          animation: _viewTransform,
+          builder: (context, _) {
+            final zoom = _viewTransform.value.getMaxScaleOnAxis().clamp(.5, 4.0);
+            return Padding(
+              padding: const EdgeInsets.all(14),
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: InteractiveViewer(
+                      transformationController: _viewTransform,
+                      minScale: .5,
+                      maxScale: 4,
+                      constrained: false,
+                      boundaryMargin: const EdgeInsets.all(180),
+                      child: SizedBox(
+                        width: availableWidth,
+                        height: availableHeight,
+                        child: FittedBox(
+                          fit: BoxFit.contain,
+                          alignment: Alignment.center,
+                          child: DesignCanvas(
+                            controller: controller,
+                            repaintKey: _canvasKey,
+                            interactionScale: baseScale * zoom,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
-                ),
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: Material(
+                      color: Colors.white,
+                      elevation: 3,
+                      borderRadius: BorderRadius.circular(14),
+                      child: IconButton(
+                        tooltip: 'Reset zoom',
+                        onPressed: () => _viewTransform.value = Matrix4.identity(),
+                        icon: const Icon(Icons.center_focus_strong_rounded),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );
@@ -137,15 +182,15 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     return SafeArea(
       top: false,
       child: Container(
-        constraints: const BoxConstraints(minHeight: 88, maxHeight: 190),
-        padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+        constraints: const BoxConstraints(minHeight: 82, maxHeight: 150),
+        padding: const EdgeInsets.fromLTRB(10, 6, 10, 8),
         decoration: const BoxDecoration(
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              blurRadius: 14,
+              blurRadius: 16,
               offset: Offset(0, -4),
-              color: Color(0x14000000),
+              color: Color(0x18000000),
             ),
           ],
         ),
@@ -161,7 +206,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
         _tool(Icons.crop_square_rounded, 'Shape', () => controller.addShape()),
         _tool(Icons.image_outlined, 'Image', _pickImage),
         _tool(Icons.layers_outlined, 'Pages', _showPages),
-        _tool(Icons.more_horiz_rounded, 'More', _showMore),
+        _tool(Icons.tune_rounded, 'Tools', _showMore),
       ],
     );
   }
@@ -172,62 +217,37 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
       mainAxisSize: MainAxisSize.min,
       children: [
         SizedBox(
-          height: 48,
+          height: 52,
           child: ListView(
             scrollDirection: Axis.horizontal,
             children: [
               _compactTool(Icons.edit_outlined, 'Edit', isText ? _editText : null),
-              if (isText)
-                _compactTool(
-                  Icons.format_size_rounded,
-                  '${selected.fontSize.round()}',
-                  () => _fontSizeDialog(selected),
-                ),
-              if (isText)
-                _compactToggle(Icons.format_bold_rounded, selected.bold, controller.toggleSelectedBold),
-              if (isText)
-                _compactToggle(Icons.format_italic_rounded, selected.italic, controller.toggleSelectedItalic),
-              if (isText)
-                _compactTool(Icons.format_align_center_rounded, 'Align', _alignmentDialog),
+              if (isText) _compactTool(Icons.font_download_outlined, 'Font', _fontDialog),
+              if (isText) _compactTool(Icons.format_size_rounded, '${selected.fontSize.round()}', () => _fontSizeDialog(selected)),
+              if (isText) _compactToggle(Icons.format_bold_rounded, selected.bold, controller.toggleSelectedBold),
+              if (isText) _compactToggle(Icons.format_italic_rounded, selected.italic, controller.toggleSelectedItalic),
+              if (isText) _compactTool(Icons.format_align_center_rounded, 'Align', _alignmentDialog),
               _compactTool(Icons.palette_outlined, 'Color', _colorDialog),
-              _compactTool(
-                selected.locked ? Icons.lock_rounded : Icons.lock_open_rounded,
-                selected.locked ? 'Locked' : 'Lock',
-                controller.toggleSelectedLock,
-              ),
+              _compactTool(selected.locked ? Icons.lock_rounded : Icons.lock_open_rounded, selected.locked ? 'Unlock' : 'Lock', controller.toggleSelectedLock),
               _compactTool(Icons.copy_outlined, 'Copy', controller.duplicateSelected),
               _compactTool(Icons.delete_outline_rounded, 'Delete', controller.deleteSelected),
             ],
           ),
         ),
         SizedBox(
-          height: 44,
+          height: 38,
           child: Row(
             children: [
               Expanded(
                 child: Text(
-                  selected.kind == ElementKind.text
-                      ? 'Text element selected'
-                      : '${selected.kind.name[0].toUpperCase()}${selected.kind.name.substring(1)} selected',
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                  isText ? 'Urdu text' : '${selected.kind.name[0].toUpperCase()}${selected.kind.name.substring(1)}',
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              IconButton(
-                tooltip: 'Send backward',
-                onPressed: controller.sendSelectedToBack,
-                icon: const Icon(Icons.vertical_align_bottom_rounded),
-              ),
-              IconButton(
-                tooltip: 'Bring forward',
-                onPressed: controller.bringSelectedToFront,
-                icon: const Icon(Icons.vertical_align_top_rounded),
-              ),
-              IconButton(
-                tooltip: 'Pages',
-                onPressed: _showPages,
-                icon: const Icon(Icons.layers_outlined),
-              ),
+              _smallAction(Icons.vertical_align_bottom_rounded, 'Back', controller.sendSelectedToBack),
+              _smallAction(Icons.vertical_align_top_rounded, 'Front', controller.bringSelectedToFront),
+              _smallAction(Icons.layers_outlined, 'Pages', _showPages),
             ],
           ),
         ),
@@ -244,8 +264,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, size: 25, color: const Color(0xFF5B21B6)),
-            const SizedBox(height: 5),
-            Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 4),
+            Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
           ],
         ),
       ),
@@ -254,19 +274,18 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
 
   Widget _compactTool(IconData icon, String label, VoidCallback? onTap) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 3),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: onTap,
-        child: Container(
-          width: 66,
-          padding: const EdgeInsets.symmetric(horizontal: 5),
+        child: SizedBox(
+          width: 62,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(icon, size: 20, color: onTap == null ? Colors.black26 : const Color(0xFF5B21B6)),
               const SizedBox(height: 2),
-              Text(label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: onTap == null ? Colors.black26 : Colors.black87)),
+              Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: onTap == null ? Colors.black26 : Colors.black87)),
             ],
           ),
         ),
@@ -276,15 +295,31 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
 
   Widget _compactToggle(IconData icon, bool active, VoidCallback onTap) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: IconButton(
-        tooltip: active ? 'On' : 'Off',
-        onPressed: onTap,
-        style: IconButton.styleFrom(
-          backgroundColor: active ? const Color(0xFFEDE9FE) : Colors.transparent,
+      padding: const EdgeInsets.symmetric(horizontal: 3),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: SizedBox(
+          width: 56,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 21, color: active ? const Color(0xFF5B21B6) : Colors.black54),
+              const SizedBox(height: 2),
+              Text(active ? 'On' : 'Off', style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w800)),
+            ],
+          ),
         ),
-        icon: Icon(icon, color: active ? const Color(0xFF5B21B6) : Colors.black54),
       ),
+    );
+  }
+
+  Widget _smallAction(IconData icon, String tooltip, VoidCallback onTap) {
+    return IconButton(
+      tooltip: tooltip,
+      visualDensity: VisualDensity.compact,
+      onPressed: onTap,
+      icon: Icon(icon, size: 22),
     );
   }
 
@@ -298,8 +333,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     final selected = controller.selected;
     if (selected == null) return;
     final text = await _textDialog(initial: selected.text);
-    if (text == null) return;
-    controller.editSelectedText(text);
+    if (text != null) controller.editSelectedText(text);
   }
 
   Future<String?> _textDialog({required String initial}) async {
@@ -313,6 +347,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
           autofocus: true,
           maxLines: 6,
           textDirection: TextDirection.rtl,
+          style: const TextStyle(fontFamily: 'Gulzar', fontSize: 22),
           decoration: const InputDecoration(
             hintText: 'اپنا متن یہاں لکھیں',
             border: OutlineInputBorder(),
@@ -326,6 +361,38 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     );
   }
 
+  Future<void> _fontDialog() async {
+    final selected = controller.selected;
+    if (selected == null) return;
+    final fonts = [
+      ('Gulzar', 'Gulzar'),
+      ('Noto Nastaliq Urdu', 'NotoNastaliqUrdu'),
+    ];
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 4, 20, 12),
+              child: Text('Urdu Font', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+            ),
+            for (final font in fonts)
+              ListTile(
+                selected: selected.fontFamily == font.$2 || (selected.fontFamily == 'JameelNoori' && font.$2 == 'Gulzar'),
+                title: Text(font.$1, style: TextStyle(fontFamily: font.$2, fontSize: 22)),
+                subtitle: Text(font.$1 == 'Gulzar' ? 'Contemporary Nastaliq' : 'Classic Nastaliq style'),
+                onTap: () => Navigator.pop(context, font.$2),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (result != null) controller.setSelectedFont(result);
+  }
+
   Future<void> _fontSizeDialog(DesignElement selected) async {
     double value = selected.fontSize;
     final result = await showDialog<double>(
@@ -336,11 +403,11 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('${value.round()} px', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+              Text('${value.round()} px', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
               Slider(
                 min: 8,
-                max: 200,
-                value: value.clamp(8, 200),
+                max: 240,
+                value: value.clamp(8, 240),
                 onChanged: (v) => setState(() => value = v),
               ),
             ],
@@ -356,23 +423,29 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   }
 
   Future<void> _alignmentDialog() async {
-    final selected = controller.selected;
-    if (selected == null) return;
     final result = await showModalBottomSheet<TextAlign>(
       context: context,
       showDragHandle: true,
       builder: (context) => SafeArea(
         child: Wrap(
           children: [
-            ListTile(leading: const Icon(Icons.format_align_left), title: const Text('Left'), onTap: () => Navigator.pop(context, TextAlign.left)),
-            ListTile(leading: const Icon(Icons.format_align_center), title: const Text('Center'), onTap: () => Navigator.pop(context, TextAlign.center)),
-            ListTile(leading: const Icon(Icons.format_align_right), title: const Text('Right'), onTap: () => Navigator.pop(context, TextAlign.right)),
-            ListTile(leading: const Icon(Icons.format_align_justify), title: const Text('Justify'), onTap: () => Navigator.pop(context, TextAlign.justify)),
+            _alignTile('Left', Icons.format_align_left, TextAlign.left),
+            _alignTile('Center', Icons.format_align_center, TextAlign.center),
+            _alignTile('Right', Icons.format_align_right, TextAlign.right),
+            _alignTile('Justify', Icons.format_align_justify, TextAlign.justify),
           ],
         ),
       ),
     );
     if (result != null) controller.setSelectedAlign(result);
+  }
+
+  Widget _alignTile(String title, IconData icon, TextAlign value) {
+    return ListTile(
+      leading: Icon(icon),
+      title: Text(title),
+      onTap: () => Navigator.pop(context, value),
+    );
   }
 
   Future<void> _colorDialog() async {
@@ -423,8 +496,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   Future<void> _pickImage() async {
     try {
       final result = await _imagePicker.pickImage(source: ImageSource.gallery);
-      if (result == null) return;
-      controller.addImage(await result.readAsBytes());
+      if (result != null) controller.addImage(await result.readAsBytes());
     } catch (_) {
       _message('Image import failed.');
     }
@@ -432,37 +504,22 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
 
   Future<void> _handleMenu(String value) async {
     try {
+      final width = controller.page.size.width;
+      final height = controller.page.size.height;
       switch (value) {
         case 'png':
-          final bytes = await _exportService.capturePng(
-            _canvasKey,
-            controller.page.size.width,
-            controller.page.size.height,
-          );
+          final bytes = await _exportService.capturePng(_canvasKey, width, height);
           await _exportService.savePng(bytes, 'naqshkaar_design');
           _message('PNG saved successfully.');
           break;
         case 'jpg':
-          final png = await _exportService.capturePng(
-            _canvasKey,
-            controller.page.size.width,
-            controller.page.size.height,
-          );
+          final png = await _exportService.capturePng(_canvasKey, width, height);
           await _exportService.saveJpeg(await _exportService.pngToJpeg(png), 'naqshkaar_design');
           _message('JPG saved successfully.');
           break;
         case 'pdf':
-          final png = await _exportService.capturePng(
-            _canvasKey,
-            controller.page.size.width,
-            controller.page.size.height,
-          );
-          await _exportService.sharePdf(
-            png,
-            controller.page.size.width,
-            controller.page.size.height,
-            'naqshkaar_design.pdf',
-          );
+          final png = await _exportService.capturePng(_canvasKey, width, height);
+          await _exportService.sharePdf(png, width, height, 'naqshkaar_design.pdf');
           break;
       }
     } catch (e) {
@@ -489,7 +546,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Pages', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+              const Text('Pages', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
               const SizedBox(height: 12),
               ...List.generate(controller.project.pages.length, (index) {
                 final page = controller.project.pages[index];
@@ -535,7 +592,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
       builder: (context) => SafeArea(
         child: Wrap(
           children: [
-            const ListTile(title: Text('Design Tools', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18))),
+            const ListTile(title: Text('Design Tools', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18))),
             ListTile(leading: const Icon(Icons.delete_outline_rounded), title: const Text('Delete selected'), onTap: () { controller.deleteSelected(); Navigator.pop(context); }),
             ListTile(leading: const Icon(Icons.copy_all_outlined), title: const Text('Duplicate selected'), onTap: () { controller.duplicateSelected(); Navigator.pop(context); }),
             ListTile(leading: const Icon(Icons.vertical_align_top_rounded), title: const Text('Bring to front'), onTap: () { controller.bringSelectedToFront(); Navigator.pop(context); }),
@@ -553,13 +610,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     try {
       final result = await FilePicker.platform.pickFiles(type: FileType.image, withData: true);
       if (result == null || result.files.isEmpty) return;
-      final PlatformFile file = result.files.first;
-      final Uint8List? bytes = file.bytes;
-      if (bytes == null) {
-        _message('Could not read image.');
-        return;
-      }
-      controller.addImage(bytes);
+      final Uint8List? bytes = result.files.first.bytes;
+      if (bytes != null) controller.addImage(bytes);
     } catch (_) {
       _message('Could not import image.');
     }
@@ -596,3 +648,5 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
       ..showSnackBar(SnackBar(content: Text(text), behavior: SnackBarBehavior.floating));
   }
 }
+
+double mathMin(double a, double b) => a < b ? a : b;
