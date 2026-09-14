@@ -1,3 +1,4 @@
+// ignore_for_file: prefer_const_constructors
 import 'package:flutter/material.dart';
 import '../data/project_repository.dart';
 import '../models/design_models.dart';
@@ -50,7 +51,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: Row(children: [const Expanded(child: Text('Recent Projects', style: TextStyle(fontSize: 21, fontWeight: FontWeight.w800))), TextButton(onPressed: _showAllProjects, child: const Text('See all'))]))),
                   SliverToBoxAdapter(child: SizedBox(height: 150, child: ListView.separated(padding: const EdgeInsets.fromLTRB(20, 4, 20, 18), scrollDirection: Axis.horizontal, itemCount: _projects.take(6).length, separatorBuilder: (_, __) => const SizedBox(width: 12), itemBuilder: (_, i) => _projectCard(_projects[i])))),
                 ],
-                SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: const Text('Quick Start', style: TextStyle(fontSize: 21, fontWeight: FontWeight.w800)))),
+                SliverToBoxAdapter(child: const Padding(padding: EdgeInsets.symmetric(horizontal: 20), child: Text('Quick Start', style: TextStyle(fontSize: 21, fontWeight: FontWeight.w800)))),
                 SliverPadding(padding: const EdgeInsets.fromLTRB(20, 12, 20, 30), sliver: SliverGrid(delegate: SliverChildListDelegate([
                   _quickCard(Icons.article_outlined, 'Urdu Post', '1080 × 1080', const CanvasSize(1080, 1080)),
                   _quickCard(Icons.phone_android_outlined, 'Story', '1080 × 1920', const CanvasSize(1080, 1920)),
