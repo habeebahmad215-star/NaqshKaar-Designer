@@ -8,6 +8,7 @@ import 'package:image/image.dart' as img;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 import '../models/design_models.dart';
 
@@ -60,9 +61,16 @@ class ExportService {
     return cleaned.isEmpty ? 'naqshkaar_design' : cleaned;
   }
 
+  Future<pw.Font> _loadUrduFont() async {
+    final bytes = await rootBundle.load('assets/fonts/Gulzar-Regular.ttf');
+    return pw.Font.ttf(bytes);
+  }
+
   Future<void> sharePdf(ProjectModel project) async {
     if (project.pages.isEmpty) throw StateError('Project has no pages.');
     final doc = pw.Document();
+    final urduFont = await _loadUrduFont();
+
     for (final page in project.pages) {
       doc.addPage(
         pw.Page(
@@ -110,7 +118,9 @@ class ExportService {
                         child: pw.Text(
                           e.text,
                           textAlign: _pdfAlign(e.textAlign),
+                          textDirection: e.textDirection == TextDirection.rtl ? pw.TextDirection.rtl : pw.TextDirection.ltr,
                           style: pw.TextStyle(
+                            font: urduFont,
                             fontSize: e.fontSize,
                             fontWeight: e.bold ? pw.FontWeight.bold : pw.FontWeight.normal,
                             fontStyle: e.italic ? pw.FontStyle.italic : pw.FontStyle.normal,
