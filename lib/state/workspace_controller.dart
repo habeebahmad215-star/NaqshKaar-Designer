@@ -59,6 +59,8 @@ class WorkspaceController extends ChangeNotifier {
   void toggleSelectedHidden() { final e = selected; if (e == null) return; _checkpoint(); e.hidden = !e.hidden; _changed(); }
   void bringSelectedToFront() { final e = selected; if (e == null) return; final i = elements.indexOf(e); if (i < 0 || i == elements.length - 1) return; _checkpoint(); elements.removeAt(i); elements.add(e); _changed(); }
   void sendSelectedToBack() { final e = selected; if (e == null) return; final i = elements.indexOf(e); if (i <= 0) return; _checkpoint(); elements.removeAt(i); elements.insert(0, e); _changed(); }
+  void bringSelectedForward() { final e = selected; if (e == null || e.locked) return; final i = elements.indexOf(e); if (i < 0 || i >= elements.length - 1) return; _checkpoint(); final next = elements.removeAt(i); elements.insert(i + 1, next); _changed(); }
+  void sendSelectedBackward() { final e = selected; if (e == null || e.locked) return; final i = elements.indexOf(e); if (i <= 0) return; _checkpoint(); final current = elements.removeAt(i); elements.insert(i - 1, current); _changed(); }
   DesignElement? get selected => selectedId == null ? null : elements.where((e) => e.id == selectedId).firstOrNull;
   void deleteSelected() { final id = selectedId; if (id == null) return; final i = elements.indexWhere((e) => e.id == id); if (i < 0) return; _checkpoint(); elements.removeAt(i); selectedId = null; _changed(); }
   void duplicateSelected() { final e = selected; if (e == null) return; _checkpoint(); final copy = e.clone()..id = _newId('element'); copy.x += 24; copy.y += 24; elements.add(copy); selectedId = copy.id; _changed(); }
