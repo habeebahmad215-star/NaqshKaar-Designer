@@ -9,6 +9,7 @@ class WorkspaceController extends ChangeNotifier {
   late ProjectModel project;
   int currentPageIndex = 0;
   String? selectedId;
+  bool _continuousCheckpointActive = false;
 
   WorkspaceController({ProjectModel? initial, CanvasSize? newSize}) {
     project = initial ?? ProjectModel(
@@ -21,17 +22,12 @@ class WorkspaceController extends ChangeNotifier {
         ),
       ],
     );
-
     if (project.pages.isEmpty) {
-      project.pages.add(
-        DesignPage(
-          title: 'Page 1',
-          size: newSize ?? const CanvasSize(1080, 1080),
-        ),
-      );
+      project.pages.add(DesignPage(
+        title: 'Page 1',
+        size: newSize ?? const CanvasSize(1080, 1080),
+      ));
     }
-
-    currentPageIndex = 0;
   }
 
   DesignPage get page => project.pages[currentPageIndex];
@@ -79,10 +75,7 @@ class WorkspaceController extends ChangeNotifier {
     notifyListeners();
   }
 
-  DesignElement addText({
-    String text = 'اپنا متن یہاں لکھیں',
-    bool rtl = true,
-  }) {
+  DesignElement addText({String text = 'اپنا متن یہاں لکھیں', bool rtl = true}) {
     _checkpoint();
     final e = DesignElement(
       id: _newId('text'),
@@ -135,15 +128,7 @@ class WorkspaceController extends ChangeNotifier {
     return e;
   }
 
-  void updateSelected({
-    double? x,
-    double? y,
-    double? width,
-    double? height,
-    double? rotation,
-    double? opacity,
-    int? colorValue,
-  }) {
+  void updateSelected({double? x, double? y, double? width, double? height, double? rotation, double? opacity, int? colorValue}) {
     final e = selected;
     if (e == null || e.locked) return;
     _checkpoint();
@@ -157,6 +142,14 @@ class WorkspaceController extends ChangeNotifier {
     _changed();
   }
 
+  void startContinuousEdit() {
+    if (_continuousCheckpointActive) return;
+    final e = selected;
+    if (e == null || e.locked) return;
+    _checkpoint();
+    _continuousCheckpointActive = true;
+  }
+
   void moveSelectedBy(double dx, double dy) {
     final e = selected;
     if (e == null || e.locked) return;
@@ -166,8 +159,7 @@ class WorkspaceController extends ChangeNotifier {
   }
 
   void finishContinuousEdit() {
-    // The live drag updates are already reflected in the current model.
-    // A checkpoint is created before the next discrete edit, keeping undo usable.
+    _continuousCheckpointActive = false;
     notifyListeners();
   }
 
@@ -316,12 +308,7 @@ class WorkspaceController extends ChangeNotifier {
 
   void addPage() {
     _checkpoint();
-    project.pages.add(
-      DesignPage(
-        title: 'Page ${project.pages.length + 1}',
-        size: page.size,
-      ),
-    );
+    project.pages.add(DesignPage(title: 'Page ${project.pages.length + 1}', size: page.size));
     currentPageIndex = project.pages.length - 1;
     selectedId = null;
     _changed();
