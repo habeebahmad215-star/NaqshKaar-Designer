@@ -43,6 +43,7 @@ class WorkspaceController extends ChangeNotifier {
 
   void centerSelected() { final e = selected; if (e == null || e.locked) return; _checkpoint(); e.x = (page.size.width - e.width) / 2; e.y = (page.size.height - e.height) / 2; _changed(); }
   void startContinuousEdit() { if (_continuousCheckpointActive) return; final e = selected; if (e == null || e.locked) return; _checkpoint(); _continuousCheckpointActive = true; }
+
   void moveSelectedBy(double dx, double dy) {
     final e = selected;
     if (e == null || e.locked) return;
@@ -53,17 +54,65 @@ class WorkspaceController extends ChangeNotifier {
     final centerY = (page.size.height - e.height) / 2;
     final rightX = page.size.width - e.width;
     final bottomY = page.size.height - e.height;
-    for (final target in [0.0, centerX, rightX]) {
-      if ((nextX - target).abs() <= snap) { nextX = target; break; }
-    }
-    for (final target in [0.0, centerY, bottomY]) {
-      if ((nextY - target).abs() <= snap) { nextY = target; break; }
-    }
+    for (final target in [0.0, centerX, rightX]) { if ((nextX - target).abs() <= snap) { nextX = target; break; } }
+    for (final target in [0.0, centerY, bottomY]) { if ((nextY - target).abs() <= snap) { nextY = target; break; } }
     e.x = nextX;
     e.y = nextY;
     _changed();
   }
-  void resizeSelectedFromHandle(String handle, double dx, double dy) { final e = selected; if (e == null || e.locked) return; final c = math.cos(e.rotation), s = math.sin(e.rotation); final localDx = dx * c + dy * s, localDy = -dx * s + dy * c; const minSize = 32.0; double newWidth = e.width, newHeight = e.height; if (handle.contains('right')) newWidth += localDx; if (handle.contains('left')) newWidth -= localDx; if (handle.contains('bottom')) newHeight += localDy; if (handle.contains('top')) newHeight -= localDy; newWidth = newWidth.clamp(minSize, page.size.width * 2); newHeight = newHeight.clamp(minSize, page.size.height * 2); final shiftX = handle.contains('left') ? e.width - newWidth : 0.0; final shiftY = handle.contains('top') ? e.height - newHeight : 0.0; e.x += shiftX * c - shiftY * s; e.y += shiftX * s + shiftY * c; e.width = newWidth; e.height = newHeight; _changed(); }
+
+  /// Resizes in the element's local coordinate system. Images preserve their
+  /// aspect ratio on corner drags; all objects remain above a safe minimum.
+  void resizeSelectedFromHandle(String handle, double dx, double dy) {
+    final e = selected;
+    if (e == null || e.locked) return;
+    final c = math.cos(e.rotation), s = math.sin(e.rotation);
+    final localDx = dx * c + dy * s;
+    final localDy = -dx * s + dy * c;
+    const minSize = 32.0;
+    var newWidth = e.width;
+    var newHeight = e.height;
+
+    final left = handle.contains('left');
+    final right = handle.contains('right');
+    final top = handle.contains('top');
+    final bottom = handle.contains('bottom');
+
+    if (left) newWidth -= localDx;
+    if (right) newWidth += localDx;
+    if (top) newHeight -= localDy;
+    if (bottom) newHeight += localDy;
+
+    // Corner handles on images are proportional. This keeps photographs and
+    // imported artwork from becoming accidentally stretched on mobile.
+    if (e.kind == ElementKind.image && left || e.kind == ElementKind.image && right) {
+      final corner = top || bottom;
+      if (corner) {
+        final ratio = e.height <= 0 ? 1.0 : e.width / e.height;
+        final widthDriven = newWidth / ratio;
+        final heightDriven = newHeight * ratio;
+        if (localDx.abs() >= localDy.abs()) {
+          newHeight = widthDriven;
+        } else {
+          newWidth = heightDriven;
+        }
+      }
+    }
+
+    newWidth = newWidth.clamp(minSize, page.size.width * 2).toDouble();
+    newHeight = newHeight.clamp(minSize, page.size.height * 2).toDouble();
+
+    // Recalculate the opposite corner anchor in world coordinates. This is
+    // what makes corner/edge resizing feel stable even when the object rotates.
+    final shiftLocalX = left ? e.width - newWidth : 0.0;
+    final shiftLocalY = top ? e.height - newHeight : 0.0;
+    e.x += shiftLocalX * c - shiftLocalY * s;
+    e.y += shiftLocalX * s + shiftLocalY * c;
+    e.width = newWidth;
+    e.height = newHeight;
+    _changed();
+  }
+
   void rotateSelectedTo(double angle) {
     final e = selected;
     if (e == null || e.locked) return;
