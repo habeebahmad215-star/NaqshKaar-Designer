@@ -1,1 +1,1 @@
-Final CI verification trigger after workflow repair.
+Trigger CI for professional selection transform upgrade — 2026-09-15
