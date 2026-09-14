@@ -232,7 +232,7 @@ class HomeScreen extends StatelessWidget {
                 width: 58,
                 height: 58,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(.16),
+                  color: Colors.white.withValues(alpha: .16),
                   borderRadius: BorderRadius.circular(18),
                 ),
                 child: const Icon(
@@ -244,8 +244,7 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(width: 16),
               const Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'Create New Design',
@@ -310,8 +309,7 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
                 width: 46,
