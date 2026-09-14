@@ -61,17 +61,34 @@ class ExportService {
     return cleaned.isEmpty ? 'naqshkaar_design' : cleaned;
   }
 
-  Future<pw.Font> _loadUrduFont() async {
-    final bytes = await rootBundle.load('assets/fonts/Gulzar-Regular.ttf');
+  Future<pw.Font> _loadFont(String family) async {
+    final asset = family == 'NotoNastaliqUrdu'
+        ? 'assets/fonts/NotoNastaliqUrdu[wght].ttf'
+        : 'assets/fonts/Gulzar-Regular.ttf';
+    final bytes = await rootBundle.load(asset);
     return pw.Font.ttf(bytes);
   }
 
   Future<void> sharePdf(ProjectModel project) async {
     if (project.pages.isEmpty) throw StateError('Project has no pages.');
     final doc = pw.Document();
-    final urduFont = await _loadUrduFont();
+    final fontCache = <String, pw.Font>{};
+
+    Future<pw.Font> fontFor(String family) async {
+      final normalized = family == 'NotoNastaliqUrdu' ? family : 'Gulzar';
+      final cached = fontCache[normalized];
+      if (cached != null) return cached;
+      final loaded = await _loadFont(normalized);
+      fontCache[normalized] = loaded;
+      return loaded;
+    }
 
     for (final page in project.pages) {
+      final textFonts = <String, pw.Font>{};
+      for (final e in page.elements.where((e) => !e.hidden && e.kind == ElementKind.text)) {
+        textFonts[e.id] = await fontFor(e.fontFamily);
+      }
+
       doc.addPage(
         pw.Page(
           pageFormat: PdfPageFormat(page.size.width, page.size.height),
@@ -120,7 +137,7 @@ class ExportService {
                           textAlign: _pdfAlign(e.textAlign),
                           textDirection: e.textDirection == TextDirection.rtl ? pw.TextDirection.rtl : pw.TextDirection.ltr,
                           style: pw.TextStyle(
-                            font: urduFont,
+                            font: textFonts[e.id],
                             fontSize: e.fontSize,
                             fontWeight: e.bold ? pw.FontWeight.bold : pw.FontWeight.normal,
                             fontStyle: e.italic ? pw.FontStyle.italic : pw.FontStyle.normal,
