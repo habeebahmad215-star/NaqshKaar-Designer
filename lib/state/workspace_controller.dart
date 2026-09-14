@@ -54,6 +54,10 @@ class WorkspaceController extends ChangeNotifier {
     page.elements.add(e); selectedId = e.id; _changed(); return e;
   }
 
+  void replaceSelectedImage(Uint8List bytes) {
+    final e = selected; if (e == null || e.kind != ElementKind.image || e.locked) return; _checkpoint(); e.imageBytes = bytes; _changed();
+  }
+
   void updateSelected({double? x, double? y, double? width, double? height, double? rotation, double? opacity, int? colorValue}) {
     final e = selected; if (e == null || e.locked) return; _checkpoint();
     if (x != null) e.x = x;
@@ -68,6 +72,9 @@ class WorkspaceController extends ChangeNotifier {
 
   void setSelectedOpacity(double value) => updateSelected(opacity: value.clamp(0, 1));
   void resetSelectedRotation() => updateSelected(rotation: 0);
+  void setSelectedRadius(double value) {
+    final e = selected; if (e == null || e.kind != ElementKind.shape || e.locked) return; _checkpoint(); e.radius = value.clamp(0, 240); _changed();
+  }
 
   void centerSelected() {
     final e = selected; if (e == null || e.locked) return; _checkpoint();
