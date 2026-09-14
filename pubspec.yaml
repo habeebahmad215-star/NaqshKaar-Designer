@@ -32,4 +32,4 @@ flutter:
         - asset: assets/fonts/Gulzar-Regular.ttf
     - family: NotoNastaliqUrdu
       fonts:
-        - asset: assets/fonts/NotoNastaliqUrdu[wght].ttf
+        - asset: assets/fonts/NotoNastaliqUrdu-Regular.ttf
