@@ -80,6 +80,9 @@ jobs:
       - name: Apply final professional toolbar polish
         run: python3 scripts/final_toolbar_polish.py
 
+      - name: Apply canvas interaction upgrade
+        run: python3 scripts/canvas_interaction_upgrade.py
+
       - name: Apply reliability and autosave upgrade
         run: python3 scripts/reliability_upgrade.py
 
