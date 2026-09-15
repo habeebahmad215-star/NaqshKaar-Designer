@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -20,15 +21,11 @@ class ExportService {
     if (boundary == null) throw StateError('Canvas is not ready for export.');
     if (!boundary.hasSize) throw StateError('Canvas has not finished rendering.');
 
-    // Rendering a very large artboard at a device-independent pixel ratio can
-    // allocate hundreds of MB and kill the Android process. Keep ordinary
-    // 1080/2048/4096 designs at their requested width, while safely limiting
-    // extreme custom canvases to a maximum raster budget.
     final logicalHeight = boundary.size.height;
     final requestedRatio = targetWidth / logicalWidth;
     final safeRatio = logicalWidth <= 0 || logicalHeight <= 0
         ? requestedRatio
-        : mathMin(requestedRatio, mathSqrt(_maxRasterPixels / (logicalWidth * logicalHeight)));
+        : math.min(requestedRatio, math.sqrt(_maxRasterPixels / (logicalWidth * logicalHeight)));
     final ratio = safeRatio.clamp(0.25, 8.0).toDouble();
     final image = await boundary.toImage(pixelRatio: ratio);
     try {
@@ -39,9 +36,6 @@ class ExportService {
       image.dispose();
     }
   }
-
-  double mathMin(double a, double b) => a < b ? a : b;
-  double mathSqrt(double value) => value <= 0 ? 0 : value.sqrt();
 
   Future<Uint8List> pngToJpeg(Uint8List pngBytes, {int quality = 95}) async {
     final decoded = img.decodeImage(pngBytes);
@@ -80,13 +74,6 @@ class ExportService {
     return cleaned.isEmpty ? 'naqshkaar_design' : cleaned;
   }
 
-  /// Creates a PDF from the already-rendered Flutter canvas.
-  ///
-  /// This is intentionally the primary PDF export path for NaqshKaar. Urdu
-  /// Nastaliq shaping, glyph positioning, line height, shadows, rotation,
-  /// opacity, image cropping and every future canvas effect are first rendered
-  /// by Flutter and then placed 1:1 into the PDF as a page image. This avoids
-  /// a second text-layout engine silently clipping or reshaping Urdu.
   Future<void> shareRenderedPdf({
     required ProjectModel project,
     required List<Uint8List> pagePngs,
@@ -119,8 +106,6 @@ class ExportService {
     );
   }
 
-  // Kept as a model-based fallback for callers that need a selectable-text PDF.
-  // The workspace uses shareRenderedPdf so the exported PDF matches the canvas.
   Future<void> sharePdf(ProjectModel project) async {
     if (project.pages.isEmpty) throw StateError('Project has no pages.');
     final doc = pw.Document();
