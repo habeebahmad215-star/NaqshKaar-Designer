@@ -100,6 +100,9 @@ jobs:
       - name: Apply demo-inspired premium editor interface
         run: python3 scripts/demo_interface_upgrade.py
 
+      - name: Clean obsolete editor chrome helpers
+        run: python3 scripts/demo_interface_cleanup.py
+
       - name: Disable only the non-build-blocking curly-braces lint
         run: |
           python3 - <<'PY'
