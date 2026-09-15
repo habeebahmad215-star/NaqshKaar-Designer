@@ -25,6 +25,8 @@ jobs:
         run: flutter create --platforms=android --project-name naqshkaar_designer .
       - name: Get dependencies
         run: flutter pub get
+      - name: Remove generated default test
+        run: rm -f test/widget_test.dart
       - name: Analyze
         run: flutter analyze
       - name: Build APK
