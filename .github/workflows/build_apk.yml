@@ -21,6 +21,8 @@ jobs:
           cache: true
       - name: Check Flutter
         run: flutter --version
+      - name: Generate Android project
+        run: flutter create --platforms=android --project-name naqshkaar_designer .
       - name: Get dependencies
         run: flutter pub get
       - name: Analyze
