@@ -61,6 +61,22 @@ class WorkspaceController extends ChangeNotifier {
     _changed();
   }
 
+  /// Moves the selected layer to a concrete stack index. The index uses the
+  /// same bottom-to-top ordering as page.elements and is undoable as one action.
+  void reorderSelectedToIndex(int targetIndex) {
+    final e = selected;
+    if (e == null || e.locked) return;
+    final oldIndex = elements.indexOf(e);
+    if (oldIndex < 0 || elements.length < 2) return;
+    final clamped = targetIndex.clamp(0, elements.length - 1).toInt();
+    if (oldIndex == clamped) return;
+    _checkpoint();
+    elements.removeAt(oldIndex);
+    final destination = clamped > oldIndex ? clamped - 1 : clamped;
+    elements.insert(destination.clamp(0, elements.length).toInt(), e);
+    _changed();
+  }
+
   /// Resizes in the element's local coordinate system. Images preserve their
   /// aspect ratio on corner drags; all objects remain above a safe minimum.
   void resizeSelectedFromHandle(String handle, double dx, double dy) {
@@ -72,38 +88,25 @@ class WorkspaceController extends ChangeNotifier {
     const minSize = 32.0;
     var newWidth = e.width;
     var newHeight = e.height;
-
     final left = handle.contains('left');
     final right = handle.contains('right');
     final top = handle.contains('top');
     final bottom = handle.contains('bottom');
-
     if (left) newWidth -= localDx;
     if (right) newWidth += localDx;
     if (top) newHeight -= localDy;
     if (bottom) newHeight += localDy;
-
-    // Corner handles on images are proportional. This keeps photographs and
-    // imported artwork from becoming accidentally stretched on mobile.
     if (e.kind == ElementKind.image && (left || right)) {
       final corner = top || bottom;
       if (corner) {
         final ratio = e.height <= 0 ? 1.0 : e.width / e.height;
         final widthDriven = newWidth / ratio;
         final heightDriven = newHeight * ratio;
-        if (localDx.abs() >= localDy.abs()) {
-          newHeight = widthDriven;
-        } else {
-          newWidth = heightDriven;
-        }
+        if (localDx.abs() >= localDy.abs()) newHeight = widthDriven; else newWidth = heightDriven;
       }
     }
-
     newWidth = newWidth.clamp(minSize, page.size.width * 2).toDouble();
     newHeight = newHeight.clamp(minSize, page.size.height * 2).toDouble();
-
-    // Recalculate the opposite corner anchor in world coordinates. This is
-    // what makes corner/edge resizing feel stable even when the object rotates.
     final shiftLocalX = left ? e.width - newWidth : 0.0;
     final shiftLocalY = top ? e.height - newHeight : 0.0;
     e.x += shiftLocalX * c - shiftLocalY * s;
