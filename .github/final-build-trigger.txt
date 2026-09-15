@@ -1,1 +1,1 @@
-Trigger CI for professional selection transform upgrade — 2026-09-15
+Trigger CI after Urdu PDF export clipping fix — 2026-09-15
