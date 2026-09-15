@@ -124,7 +124,7 @@ canvas_path = Path('lib/widgets/design_canvas.dart')
 canvas = canvas_path.read_text()
 needle = "        Positioned(\n          top: 8,\n          right: 8,\n          child: Material("
 if needle in canvas and 'AlignmentGuidesPainter' not in canvas:
-    overlay = '''        if (controller.guideX != null || controller.guideY != null) {
+    overlay = '''        if (controller.guideX != null || controller.guideY != null) ...[
           Positioned.fill(
             child: IgnorePointer(
               child: CustomPaint(
@@ -137,7 +137,7 @@ if needle in canvas and 'AlignmentGuidesPainter' not in canvas:
               ),
             ),
           ),
-        },
+        ],
 '''
     canvas = canvas.replace(needle, overlay + needle, 1)
     canvas += '''\n\nclass _AlignmentGuidesPainter extends CustomPainter {
