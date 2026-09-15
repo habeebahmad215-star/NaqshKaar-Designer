@@ -97,12 +97,6 @@ jobs:
       - name: Normalize generated controller flow statements
         run: python3 scripts/controller_flow_control_fix.py
 
-      - name: Apply demo-inspired premium editor interface
-        run: python3 scripts/demo_interface_upgrade.py
-
-      - name: Ignore obsolete legacy chrome helper warnings
-        run: sed -i '1i// ignore_for_file: unused_element' lib/screens/workspace_screen.dart
-
       - name: Disable only the non-build-blocking curly-braces lint
         run: |
           python3 - <<'PY'
