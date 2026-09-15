@@ -4,11 +4,7 @@ import '../models/design_models.dart';
 import '../state/workspace_controller.dart';
 import 'layers_panel.dart';
 
-/// High quality mobile transform overlay.
-///
-/// The selection UI is deliberately independent from the object's decoration:
-/// handles stay visually inside the page, remain easy to touch at any zoom,
-/// and transform in the object's local coordinate space.
+/// Clean, Canva-style selection overlay for mobile editing.
 class DesignCanvas extends StatefulWidget {
   final WorkspaceController controller;
   final GlobalKey repaintKey;
@@ -23,8 +19,10 @@ class _DesignCanvasState extends State<DesignCanvas> {
   WorkspaceController get controller => widget.controller;
   double get scale => widget.interactionScale.clamp(.05, 10);
   static const _purple = Color(0xFF6D28D9);
+  static const _handleWhite = Colors.white;
   static const _touch = 44.0;
-  static const _visual = 16.0;
+  static const _cornerVisual = 12.0;
+  static const _edgeVisual = 8.0;
 
   @override
   Widget build(BuildContext context) {
@@ -84,12 +82,10 @@ class _DesignCanvasState extends State<DesignCanvas> {
       ? const []
       : [BoxShadow(color: e.shadowColor, blurRadius: e.shadowBlur, offset: Offset(e.shadowOffsetX, e.shadowOffsetY))];
 
-  BoxDecoration _decoration(DesignElement e, {required bool selected, required bool isShape}) => BoxDecoration(
+  BoxDecoration _decoration(DesignElement e, {required bool isShape}) => BoxDecoration(
     color: isShape ? e.color : null,
     borderRadius: isShape ? BorderRadius.circular(e.radius) : null,
-    border: e.strokeWidth > 0 && e.strokeColor.a > 0
-        ? Border.all(color: e.strokeColor, width: e.strokeWidth)
-        : null,
+    border: e.strokeWidth > 0 && e.strokeColor.a > 0 ? Border.all(color: e.strokeColor, width: e.strokeWidth) : null,
     boxShadow: _shadows(e),
   );
 
@@ -100,14 +96,14 @@ class _DesignCanvasState extends State<DesignCanvas> {
     switch (e.kind) {
       case ElementKind.text:
         child = Container(
-          decoration: _decoration(e, selected: selected, isShape: false),
+          decoration: _decoration(e, isShape: false),
           alignment: Alignment.center,
           child: Text(
             e.text.isEmpty ? 'Text' : e.text,
             textAlign: e.textAlign,
             textDirection: e.textDirection,
             style: TextStyle(
-              fontFamily: e.fontFamily == 'JameelNoori' ? 'Gulzar' : e.fontFamily,
+              fontFamily: e.fontFamily,
               fontSize: e.fontSize,
               color: e.color,
               fontWeight: e.bold ? FontWeight.bold : FontWeight.normal,
@@ -120,11 +116,11 @@ class _DesignCanvasState extends State<DesignCanvas> {
         );
         break;
       case ElementKind.shape:
-        child = DecoratedBox(decoration: _decoration(e, selected: selected, isShape: true));
+        child = DecoratedBox(decoration: _decoration(e, isShape: true));
         break;
       case ElementKind.image:
         child = Container(
-          decoration: _decoration(e, selected: selected, isShape: false),
+          decoration: _decoration(e, isShape: false),
           clipBehavior: Clip.antiAlias,
           child: e.imageBytes == null ? const ColoredBox(color: Colors.black12) : Image.memory(e.imageBytes!, fit: BoxFit.cover),
         );
@@ -140,7 +136,7 @@ class _DesignCanvasState extends State<DesignCanvas> {
         angle: e.rotation,
         alignment: Alignment.center,
         child: Stack(
-          clipBehavior: Clip.hardEdge,
+          clipBehavior: Clip.none,
           children: [
             GestureDetector(
               behavior: HitTestBehavior.opaque,
@@ -161,53 +157,31 @@ class _DesignCanvasState extends State<DesignCanvas> {
   }
 
   Widget _selectionHandles(DesignElement e) {
-    // Every visual handle is kept inside the object's box. The larger gesture
-    // targets make the controls comfortable on phones without leaking outside.
     return Positioned.fill(
-      child: Stack(
-        clipBehavior: Clip.hardEdge,
-        children: [
-          _cornerHandle(e, 'top-left', 0, 0, Alignment.topLeft),
-          _cornerHandle(e, 'top-right', 1, 0, Alignment.topRight),
-          _cornerHandle(e, 'bottom-left', 0, 1, Alignment.bottomLeft),
-          _cornerHandle(e, 'bottom-right', 1, 1, Alignment.bottomRight),
-          _edgeHandle(e, 'top', Alignment.topCenter),
-          _edgeHandle(e, 'bottom', Alignment.bottomCenter),
-          _edgeHandle(e, 'left', Alignment.centerLeft),
-          _edgeHandle(e, 'right', Alignment.centerRight),
-          _rotationHandle(e),
-        ],
-      ),
-    );
-  }
-
-  Widget _cornerHandle(DesignElement e, String type, double x, double y, Alignment alignment) {
-    final touch = _touch / scale;
-    final visual = _visual / scale;
-    final dx = x == 0 ? touch / 2 : -touch / 2;
-    final dy = y == 0 ? touch / 2 : -touch / 2;
-    return Align(
-      alignment: alignment,
-      child: Transform.translate(
-        offset: Offset(dx, dy),
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onPanStart: (_) { controller.select(e.id); controller.startContinuousEdit(); },
-          onPanUpdate: (d) => controller.resizeSelectedFromHandle(type, d.delta.dx / scale, d.delta.dy / scale),
-          onPanEnd: (_) => controller.finishContinuousEdit(),
-          child: SizedBox(
-            width: touch,
-            height: touch,
-            child: Center(child: _handleVisual(visual, Icons.circle)),
-          ),
+      child: IgnorePointer(
+        ignoring: false,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned.fill(child: IgnorePointer(child: CustomPaint(painter: _SelectionBorderPainter(color: _purple, strokeWidth: 1.5 / scale)))),
+            _cornerHandle(e, 'top-left', Alignment.topLeft),
+            _cornerHandle(e, 'top-right', Alignment.topRight),
+            _cornerHandle(e, 'bottom-left', Alignment.bottomLeft),
+            _cornerHandle(e, 'bottom-right', Alignment.bottomRight),
+            _edgeHandle(e, 'top', Alignment.topCenter),
+            _edgeHandle(e, 'bottom', Alignment.bottomCenter),
+            _edgeHandle(e, 'left', Alignment.centerLeft),
+            _edgeHandle(e, 'right', Alignment.centerRight),
+            _rotationHandle(e),
+          ],
         ),
       ),
     );
   }
 
-  Widget _edgeHandle(DesignElement e, String type, Alignment alignment) {
+  Widget _cornerHandle(DesignElement e, String type, Alignment alignment) {
     final touch = _touch / scale;
-    final visual = 6.0 / scale;
+    final visual = _cornerVisual / scale;
     return Align(
       alignment: alignment,
       child: GestureDetector(
@@ -216,33 +190,63 @@ class _DesignCanvasState extends State<DesignCanvas> {
         onPanUpdate: (d) => controller.resizeSelectedFromHandle(type, d.delta.dx / scale, d.delta.dy / scale),
         onPanEnd: (_) => controller.finishContinuousEdit(),
         child: SizedBox(
-          width: alignment == Alignment.centerLeft || alignment == Alignment.centerRight ? touch : math.max(touch, e.width),
-          height: alignment == Alignment.topCenter || alignment == Alignment.bottomCenter ? touch : math.max(touch, e.height),
-          child: Center(child: Container(width: visual, height: visual, decoration: BoxDecoration(color: Colors.white, border: Border.all(color: _purple, width: 2 / scale), borderRadius: BorderRadius.circular(3 / scale)))),
+          width: touch,
+          height: touch,
+          child: Center(
+            child: Container(
+              width: visual,
+              height: visual,
+              decoration: BoxDecoration(
+                color: _handleWhite,
+                shape: BoxShape.circle,
+                border: Border.all(color: _purple, width: 2 / scale),
+              ),
+            ),
+          ),
         ),
       ),
     );
   }
 
-  Widget _handleVisual(double size, IconData icon) => Container(
-    width: size,
-    height: size,
-    decoration: BoxDecoration(
-      color: Colors.white,
-      shape: BoxShape.circle,
-      border: Border.all(color: _purple, width: 2 / scale),
-      boxShadow: const [BoxShadow(blurRadius: 4, spreadRadius: .5, color: Colors.black26)],
-    ),
-  );
+  Widget _edgeHandle(DesignElement e, String type, Alignment alignment) {
+    final touch = _touch / scale;
+    final visual = _edgeVisual / scale;
+    final horizontal = alignment == Alignment.topCenter || alignment == Alignment.bottomCenter;
+    return Align(
+      alignment: alignment,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onPanStart: (_) { controller.select(e.id); controller.startContinuousEdit(); },
+        onPanUpdate: (d) => controller.resizeSelectedFromHandle(type, d.delta.dx / scale, d.delta.dy / scale),
+        onPanEnd: (_) => controller.finishContinuousEdit(),
+        child: SizedBox(
+          width: horizontal ? math.max(touch, math.min(e.width, 180.0)) : touch,
+          height: horizontal ? touch : math.max(touch, math.min(e.height, 180.0)),
+          child: Center(
+            child: Container(
+              width: horizontal ? 30 / scale : visual,
+              height: horizontal ? visual : 30 / scale,
+              decoration: BoxDecoration(
+                color: _handleWhite,
+                border: Border.all(color: _purple, width: 1.8 / scale),
+                borderRadius: BorderRadius.circular(4 / scale),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _rotationHandle(DesignElement e) {
     final touch = _touch / scale;
     final visual = 18.0 / scale;
+    final stemHeight = 18.0 / scale;
     return Positioned(
-      top: 2 / scale,
+      top: -touch - stemHeight + 8 / scale,
       left: (e.width - touch) / 2,
       width: touch,
-      height: touch,
+      height: touch + stemHeight,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onPanStart: (d) {
@@ -267,13 +271,20 @@ class _DesignCanvasState extends State<DesignCanvas> {
           _rotationStartValue = null;
           controller.finishContinuousEdit();
         },
-        child: Center(
-          child: Container(
-            width: visual,
-            height: visual,
-            decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: _purple, width: 2 / scale), boxShadow: const [BoxShadow(blurRadius: 5, spreadRadius: 1, color: Colors.black26)]),
-            child: Icon(Icons.rotate_right_rounded, size: 12 / scale, color: _purple),
-          ),
+        child: Column(
+          children: [
+            Container(
+              width: visual,
+              height: visual,
+              decoration: BoxDecoration(
+                color: _handleWhite,
+                shape: BoxShape.circle,
+                border: Border.all(color: _purple, width: 2 / scale),
+              ),
+              child: Icon(Icons.rotate_right_rounded, size: 11 / scale, color: _purple),
+            ),
+            Container(width: 1.5 / scale, height: stemHeight, color: _purple),
+          ],
         ),
       ),
     );
@@ -284,4 +295,20 @@ class _DesignCanvasState extends State<DesignCanvas> {
     if (box is RenderBox) return box.localToGlobal(Offset(e.x + e.width / 2, e.y + e.height / 2));
     return Offset(e.x + e.width / 2, e.y + e.height / 2);
   }
+}
+
+class _SelectionBorderPainter extends CustomPainter {
+  final Color color;
+  final double strokeWidth;
+  const _SelectionBorderPainter({required this.color, required this.strokeWidth});
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth;
+    canvas.drawRect(Rect.fromLTWH(strokeWidth / 2, strokeWidth / 2, size.width - strokeWidth, size.height - strokeWidth), paint);
+  }
+  @override
+  bool shouldRepaint(covariant _SelectionBorderPainter old) => old.color != color || old.strokeWidth != strokeWidth;
 }
