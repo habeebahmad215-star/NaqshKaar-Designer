@@ -1,3 +1,4 @@
+// Premium home shell retained while the editor receives the demo-inspired chrome upgrade.
 import 'package:flutter/material.dart';
 import '../data/project_repository.dart';
 import '../models/design_models.dart';
