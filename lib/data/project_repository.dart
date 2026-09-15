@@ -13,9 +13,22 @@ class ProjectRepository {
 
   Future<File> _file(String id) async => File('${(await _dir()).path}/$id.json');
 
+  /// Crash-safe save: write the complete project to a temporary file first,
+  /// flush it, then replace the previous snapshot. This prevents a partially
+  /// written JSON project from becoming the user's only recovery copy.
   Future<void> save(ProjectModel project) async {
     final file = await _file(project.id);
-    await file.writeAsString(jsonEncode(project.toJson()), flush: true);
+    final temp = File('${file.path}.tmp');
+    try {
+      await temp.writeAsString(jsonEncode(project.toJson()), flush: true);
+      if (await file.exists()) await file.delete();
+      await temp.rename(file.path);
+    } catch (_) {
+      if (await temp.exists()) {
+        try { await temp.delete(); } catch (_) {}
+      }
+      rethrow;
+    }
   }
 
   Future<ProjectModel?> load(String id) async {
