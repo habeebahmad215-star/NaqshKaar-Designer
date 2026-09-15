@@ -74,6 +74,9 @@ jobs:
       - name: Apply premium Urdu font catalog
         run: python3 scripts/font_catalog_upgrade.py
 
+      - name: Fix generated composer syntax
+        run: python3 scripts/fix_generated_composer_syntax.py
+
       - name: Apply final professional toolbar polish
         run: python3 scripts/final_toolbar_polish.py
 
