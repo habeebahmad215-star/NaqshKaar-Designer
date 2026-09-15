@@ -94,6 +94,9 @@ jobs:
       - name: Apply export memory safety
         run: python3 scripts/export_safety_upgrade.py
 
+      - name: Final Dart lint hardening
+        run: python3 scripts/final_dart_lint_hardening.py
+
       - name: Analyze
         run: flutter analyze
 
