@@ -6,8 +6,6 @@ on:
     branches:
       - main
 
-# Keep a single release workflow and retrigger verification after CI startup failures.
-
 jobs:
   build:
     name: Build Android
@@ -102,8 +100,8 @@ jobs:
       - name: Apply reference Add New panel and utility bar
         run: python3 scripts/reference_add_new_panel.py
 
-      - name: Allow intentionally retained compatibility helpers
-        run: printf '\n// UI transformation keeps compatibility helpers available for later toolbar modes.\n// ignore_for_file: unused_element\n' >> lib/screens/workspace_screen.dart
+      - name: Suppress retained compatibility helper warnings
+        run: sed -i '1i// ignore_for_file: unused_element' lib/screens/workspace_screen.dart
 
       - name: Normalize generated controller flow statements
         run: python3 scripts/controller_flow_control_fix.py
