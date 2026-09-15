@@ -1,22 +1,24 @@
 from pathlib import Path
+import re
 
 path = Path('lib/state/workspace_controller.dart')
 text = path.read_text(encoding='utf-8')
 
-# Image Studio historically emitted these two guards on one line. Keep the
-# fix explicit and idempotent so it cannot accidentally rewrite unrelated Dart.
-replacements = {
-    'if (x != null) e.imageOffsetX = x.clamp(-1, 1).toDouble();':
-        'if (x != null) {\n      e.imageOffsetX = x.clamp(-1, 1).toDouble();\n    }',
-    'if (y != null) e.imageOffsetY = y.clamp(-1, 1).toDouble();':
-        'if (y != null) {\n      e.imageOffsetY = y.clamp(-1, 1).toDouble();\n    }',
-}
+# Normalize every simple element-field assignment used as an unbraced if body.
+pattern = re.compile(r'if\s*\((?P<condition>[^()\n]+)\)\s*(?P<statement>e\.[A-Za-z_][A-Za-z0-9_]*\s*=\s*[^;\n]+;)')
 
-for old, new in replacements.items():
-    text = text.replace(old, new)
+def replace(match):
+    return f"if ({match.group('condition').strip()}) {{\n      {match.group('statement').strip()}\n    }}"
 
-if 'if (x != null) e.imageOffsetX =' in text or 'if (y != null) e.imageOffsetY =' in text:
-    raise SystemExit('Controller flow-control fix verification failed.')
+previous = None
+while previous != text:
+    previous = text
+    text = pattern.sub(replace, text)
+
+remaining = list(pattern.finditer(text))
+if remaining:
+    lines = ', '.join(str(text.count('\n', 0, m.start()) + 1) for m in remaining[:12])
+    raise SystemExit('Controller inline assignment verification failed at line(s): ' + lines)
 
 path.write_text(text, encoding='utf-8')
-print('Controller inline Image Studio flow statements normalized successfully.')
+print('All generated element-field inline if assignments normalized successfully.')
