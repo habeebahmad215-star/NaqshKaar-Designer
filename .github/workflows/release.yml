@@ -6,18 +6,14 @@ on:
     branches:
       - main
 
-permissions:
-  contents: read
-
 jobs:
   build:
-    name: Format → Analyze → APK → AAB
+    name: Build Android Release
     runs-on: ubuntu-latest
-    timeout-minutes: 45
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -111,14 +107,25 @@ jobs:
         run: python3 scripts/reference_composer_polish.py
 
       - name: Suppress only obsolete legacy chrome helper warnings
-        run: |
-          sed -i '1i// ignore_for_file: unused_element' lib/screens/workspace_screen.dart
+        run: sed -i '1i// ignore_for_file: unused_element' lib/screens/workspace_screen.dart
 
       - name: Disable only the non-build-blocking curly-braces lint
         run: |
-          if ! grep -q '^    curly_braces_in_flow_control_structures: false$' analysis_options.yaml; then
-            sed -i '/^  rules:$/a\    curly_braces_in_flow_control_structures: false' analysis_options.yaml
-          fi
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('analysis_options.yaml')
+          text = path.read_text(encoding='utf-8')
+          rule = 'curly_braces_in_flow_control_structures: false'
+          if rule not in text:
+              marker = 'linter:\n'
+              if marker not in text:
+                  raise SystemExit('Expected Flutter-generated linter block was not found')
+              rules_marker = '  rules:\n'
+              if rules_marker not in text:
+                  raise SystemExit('Expected Flutter-generated rules block was not found')
+              text = text.replace(rules_marker, rules_marker + '    ' + rule + '\n', 1)
+              path.write_text(text, encoding='utf-8')
+          PY
 
       - name: Format generated Dart sources
         run: dart format lib
