@@ -6,6 +6,8 @@ on:
     branches:
       - main
 
+# Keep a single release workflow and retrigger verification after CI startup failures.
+
 jobs:
   build:
     name: Build Android
