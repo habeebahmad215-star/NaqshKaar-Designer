@@ -94,7 +94,7 @@ ws = replace_method(ws, '  Future<void> _fontSheet()', r'''  Future<void> _fontS
           ('Noto Nastaliq Urdu', 'Google Fonts Nastaliq', 'NotoNastaliqUrdu'),
           ('Mehr Nastaliq', 'Traditional Urdu preview', 'MehrNastaliq'),
           ('Alvi Nastaleeq', 'Classic Urdu display', 'AlviNastaleeq'),
-          ('Jameel Noori', 'Jameel Noori Nastaleeq', 'JameelNoori'),
+          ('Jameel Noori', 'Jameel Noori Nastaleeq', 'JameelNooriNastaleeq'),
         ];
         return StatefulBuilder(
           builder: (context, setState) {
@@ -120,7 +120,7 @@ ws = replace_method(ws, '  Future<void> _fontSheet()', r'''  Future<void> _fontS
                           separatorBuilder: (_, __) => const SizedBox(height: 8),
                           itemBuilder: (_, index) {
                             final font = visible[index];
-                            final active = element.fontFamily == font.$3 || (element.fontFamily == 'JameelNoori' && font.$3 == 'Gulzar');
+                            final active = element.fontFamily == font.$3;
                             return Material(
                               color: active ? const Color(0xFFF3ECFF) : const Color(0xFFF8F8FA),
                               borderRadius: BorderRadius.circular(20),
