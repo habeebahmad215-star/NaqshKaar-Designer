@@ -62,7 +62,7 @@ class DesignElement {
     this.shadowOffsetX = 0,
     this.shadowOffsetY = 0,
     this.text = '',
-    this.fontFamily = 'Gulzar',
+    this.fontFamily = 'JameelNooriNastaleeq',
     this.fontSize = 56,
     this.letterSpacing = 0,
     this.lineHeight = 1.25,
@@ -101,6 +101,10 @@ class DesignElement {
     Uint8List? bytes;
     final raw = json['imageBytes'];
     if (raw is String && raw.isNotEmpty) { try { bytes = base64Decode(raw); } catch (_) {} }
+    final storedFont = json['fontFamily']?.toString();
+    final fontFamily = storedFont == null || storedFont.isEmpty || storedFont == 'JameelNoori'
+        ? 'JameelNooriNastaleeq'
+        : storedFont;
     return DesignElement(
       id: json['id']?.toString() ?? '', kind: kind,
       x: (json['x'] as num?)?.toDouble() ?? 0, y: (json['y'] as num?)?.toDouble() ?? 0,
@@ -115,7 +119,7 @@ class DesignElement {
       shadowBlur: ((json['shadowBlur'] as num?)?.toDouble() ?? 0).clamp(0, 80),
       shadowOffsetX: (json['shadowOffsetX'] as num?)?.toDouble() ?? 0,
       shadowOffsetY: (json['shadowOffsetY'] as num?)?.toDouble() ?? 0,
-      text: json['text']?.toString() ?? '', fontFamily: json['fontFamily']?.toString() ?? 'Gulzar',
+      text: json['text']?.toString() ?? '', fontFamily: fontFamily,
       fontSize: (json['fontSize'] as num?)?.toDouble() ?? 56,
       letterSpacing: (json['letterSpacing'] as num?)?.toDouble() ?? 0,
       lineHeight: ((json['lineHeight'] as num?)?.toDouble() ?? 1.25).clamp(.7, 3),
