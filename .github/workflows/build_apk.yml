@@ -100,6 +100,12 @@ jobs:
       - name: Final Dart lint hardening
         run: python3 scripts/final_dart_lint_hardening.py
 
+      - name: Apply Dart analyzer autofixes
+        run: dart fix --apply
+
+      - name: Format generated Dart sources
+        run: dart format lib
+
       - name: Analyze
         run: flutter analyze
 
