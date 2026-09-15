@@ -46,20 +46,13 @@ jobs:
       - name: Download bundled Urdu fonts
         run: |
           mkdir -p assets/fonts
-          curl -fL --retry 3 -o assets/fonts/Gulzar-Regular.ttf \
-            https://raw.githubusercontent.com/googlefonts/Gulzar/main/fonts/ttf/Gulzar-Regular.ttf
-          curl -fL --retry 3 -o assets/fonts/NotoNastaliqUrdu-Regular.ttf \
-            https://raw.githubusercontent.com/harfbuzz/harfbuzz-monster-fonts/main/NotoNastaliqUrdu-Regular.ttf
-          curl -fL --retry 3 -o assets/fonts/MehrNastaliq.ttf \
-            https://raw.githubusercontent.com/abbassiddiqi/mehr/master/mehr.ttf
-          curl -fL --retry 3 -o assets/fonts/AlviNastaleeq.ttf \
-            https://raw.githubusercontent.com/imrofayel/UrduFonts/master/fonts/AlviNastaleeq.ttf
-          curl -fL --retry 3 -o assets/fonts/JameelNooriNastaleeq.ttf \
-            https://raw.githubusercontent.com/abid-mujtaba/ttf-jameel-noori-nastaleeq/master/Jameel%20Noori%20Nastaleeq.ttf
-          curl -fL --retry 3 -o assets/fonts/AlMajeedQuranic.ttf \
-            https://fontly-virid.vercel.app/fonts/ttf/al-majeed-quranic-font-shiped.ttf
-          curl -fL --retry 3 -o assets/fonts/BombayBlack.ttf \
-            https://www.urdufont.org/download.php?id=737645
+          curl -fL --retry 3 -o assets/fonts/Gulzar-Regular.ttf https://raw.githubusercontent.com/googlefonts/Gulzar/main/fonts/ttf/Gulzar-Regular.ttf
+          curl -fL --retry 3 -o assets/fonts/NotoNastaliqUrdu-Regular.ttf https://raw.githubusercontent.com/harfbuzz/harfbuzz-monster-fonts/main/NotoNastaliqUrdu-Regular.ttf
+          curl -fL --retry 3 -o assets/fonts/MehrNastaliq.ttf https://raw.githubusercontent.com/abbassiddiqi/mehr/master/mehr.ttf
+          curl -fL --retry 3 -o assets/fonts/AlviNastaleeq.ttf https://raw.githubusercontent.com/imrofayel/UrduFonts/master/fonts/AlviNastaleeq.ttf
+          curl -fL --retry 3 -o assets/fonts/JameelNooriNastaleeq.ttf https://raw.githubusercontent.com/abid-mujtaba/ttf-jameel-noori-nastaleeq/master/Jameel%20Noori%20Nastaleeq.ttf
+          curl -fL --retry 3 -o assets/fonts/AlMajeedQuranic.ttf https://fontly-virid.vercel.app/fonts/ttf/al-majeed-quranic-font-shiped.ttf
+          curl -fL --retry 3 -o assets/fonts/BombayBlack.ttf https://www.urdufont.org/download.php?id=737645
           for font in assets/fonts/*.ttf; do test -s "$font" || exit 1; done
 
       - name: Get dependencies
@@ -85,6 +78,9 @@ jobs:
 
       - name: Apply professional Image Studio
         run: python3 scripts/image_studio_upgrade.py
+
+      - name: Apply advanced Layers Studio
+        run: python3 scripts/advanced_layers_upgrade.py
 
       - name: Apply reliability and autosave upgrade
         run: python3 scripts/reliability_upgrade.py
