@@ -111,7 +111,56 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _quickCard(IconData icon, String title, String subtitle, CanvasSize size, {bool custom = false}) => Material(color: Colors.white, borderRadius: BorderRadius.circular(22), child: InkWell(borderRadius: BorderRadius.circular(22), onTap: custom ? _customSize : () => _create(size), child: Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(borderRadius: BorderRadius.circular(22), border: Border.all(color: const Color(0xFFE5E7EB))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Container(width: 46, height: 46, decoration: BoxDecoration(color: const Color(0xFFF3E8FF), borderRadius: BorderRadius.circular(14)), child: Icon(icon, color: const Color(0xFF7C3AED), size: 25)), const Spacer(), Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)), const SizedBox(height: 4), Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.black54))]))));
 
-  Widget _projectCard(ProjectModel project) => SizedBox(width: 240, child: Material(color: Colors.white, borderRadius: BorderRadius.circular(18), child: InkWell(borderRadius: BorderRadius.circular(18), onTap: () => _openProject(project), onLongPress: () => _confirmDelete(project), child: Padding(padding: const EdgeInsets.all(14), child: Row(children: [Container(width: 56, height: 76, decoration: BoxDecoration(color: project.pages.first.background, borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.black12)), child: Center(child: Text('${project.pages.length}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20)))), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [Text(project.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800)), const SizedBox(height: 5), Text('${project.pages.length} page${project.pages.length == 1 ? '' : 's'}', style: const TextStyle(fontSize: 12, color: Colors.black54)), const SizedBox(height: 7), const Text('Tap to continue • Hold to delete', style: TextStyle(fontSize: 10, color: Colors.black45))]))]))));
+  Widget _projectCard(ProjectModel project) {
+    return SizedBox(
+      width: 240,
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: () => _openProject(project),
+          onLongPress: () => _confirmDelete(project),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                Container(
+                  width: 56,
+                  height: 76,
+                  decoration: BoxDecoration(
+                    color: project.pages.first.background,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.black12),
+                  ),
+                  child: Center(
+                    child: Text(
+                      '${project.pages.length}',
+                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(project.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 5),
+                      Text('${project.pages.length} page${project.pages.length == 1 ? '' : 's'}', style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                      const SizedBox(height: 7),
+                      const Text('Tap to continue • Hold to delete', style: TextStyle(fontSize: 10, color: Colors.black45)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   Future<void> _confirmDelete(ProjectModel project) async {
     final yes = await showDialog<bool>(context: context, builder: (c) => AlertDialog(title: const Text('Delete project?'), content: Text('Delete “${project.name}” permanently from this device?'), actions: [TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')), FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Delete'))]));
@@ -119,7 +168,54 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showAllProjects() {
-    showModalBottomSheet<void>(context: context, isScrollControlled: true, showDragHandle: true, builder: (c) => SafeArea(child: SizedBox(height: MediaQuery.sizeOf(c).height * .72, child: Column(children: [const Padding(padding: EdgeInsets.all(16), child: Text('Project Library', style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900))), Expanded(child: _projects.isEmpty ? const Center(child: Text('No saved projects yet.')) : ListView.separated(padding: const EdgeInsets.all(16), itemCount: _projects.length, separatorBuilder: (_, __) => const SizedBox(height: 8), itemBuilder: (_, i) { final p = _projects[i]; return ListTile(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), tileColor: const Color(0xFFF8F7FC), leading: CircleAvatar(backgroundColor: const Color(0xFFEDE9FE), child: Text('${p.pages.length}')), title: Text(p.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800)), subtitle: const Text('Tap to continue editing'), onTap: () { Navigator.pop(c); _openProject(p); }, trailing: IconButton(onPressed: () => _confirmDelete(p), icon: const Icon(Icons.delete_outline))); }))))]));
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (c) => SafeArea(
+        child: SizedBox(
+          height: MediaQuery.sizeOf(c).height * .72,
+          child: Column(
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text('Project Library', style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900)),
+              ),
+              Expanded(
+                child: _projects.isEmpty
+                    ? const Center(child: Text('No saved projects yet.'))
+                    : ListView.separated(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: _projects.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        itemBuilder: (_, i) {
+                          final p = _projects[i];
+                          return ListTile(
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            tileColor: const Color(0xFFF8F7FC),
+                            leading: CircleAvatar(
+                              backgroundColor: const Color(0xFFEDE9FE),
+                              child: Text('${p.pages.length}'),
+                            ),
+                            title: Text(p.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800)),
+                            subtitle: const Text('Tap to continue editing'),
+                            onTap: () {
+                              Navigator.pop(c);
+                              _openProject(p);
+                            },
+                            trailing: IconButton(
+                              onPressed: () => _confirmDelete(p),
+                              icon: const Icon(Icons.delete_outline),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _showSettings() {
