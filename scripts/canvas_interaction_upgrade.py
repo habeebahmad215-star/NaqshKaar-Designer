@@ -43,14 +43,20 @@ move_replacement = r'''  void moveSelectedBy(double dx, double dy) {
     final xTargets = <double>[0, page.size.width / 2, page.size.width];
     final yTargets = <double>[0, page.size.height / 2, page.size.height];
     for (final other in elements) {
-      if (other.id == e.id || other.hidden) continue;
+      if (other.id == e.id || other.hidden) {
+        continue;
+      }
       xTargets.addAll([other.x, other.x + other.width / 2, other.x + other.width]);
       yTargets.addAll([other.y, other.y + other.height / 2, other.y + other.height]);
     }
     for (final anchor in xAnchors) {
       final target = xTargets.fold<double?>(null, (best, value) {
-        if ((anchor.position - value).abs() > snap) return best;
-        if (best == null || (anchor.position - value).abs() < (anchor.position - best).abs()) return value;
+        if ((anchor.position - value).abs() > snap) {
+          return best;
+        }
+        if (best == null || (anchor.position - value).abs() < (anchor.position - best).abs()) {
+          return value;
+        }
         return best;
       });
       if (target != null) {
@@ -61,8 +67,12 @@ move_replacement = r'''  void moveSelectedBy(double dx, double dy) {
     }
     for (final anchor in yAnchors) {
       final target = yTargets.fold<double?>(null, (best, value) {
-        if ((anchor.position - value).abs() > snap) return best;
-        if (best == null || (anchor.position - value).abs() < (anchor.position - best).abs()) return value;
+        if ((anchor.position - value).abs() > snap) {
+          return best;
+        }
+        if (best == null || (anchor.position - value).abs() < (anchor.position - best).abs()) {
+          return value;
+        }
         return best;
       });
       if (target != null) {
@@ -139,7 +149,9 @@ if needle in canvas and 'AlignmentGuidesPainter' not in canvas:
     const gap = 5.0;
     void dashedLine(Offset a, Offset b) {
       final distance = (b - a).distance;
-      if (distance <= 0) return;
+      if (distance <= 0) {
+        return;
+      }
       final direction = (b - a) / distance;
       var traveled = 0.0;
       while (traveled < distance) {
