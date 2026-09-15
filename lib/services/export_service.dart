@@ -16,12 +16,16 @@ class ExportService {
   Future<Uint8List> capturePng(GlobalKey key, double logicalWidth, double targetWidth) async {
     final boundary = key.currentContext?.findRenderObject() as RenderRepaintBoundary?;
     if (boundary == null) throw StateError('Canvas is not ready for export.');
-    final ratio = targetWidth / logicalWidth;
+    if (!boundary.hasSize) throw StateError('Canvas has not finished rendering.');
+    final ratio = (targetWidth / logicalWidth).clamp(0.25, 8.0).toDouble();
     final image = await boundary.toImage(pixelRatio: ratio);
-    final data = await image.toByteData(format: ui.ImageByteFormat.png);
-    image.dispose();
-    if (data == null) throw StateError('Could not encode PNG.');
-    return data.buffer.asUint8List();
+    try {
+      final data = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (data == null) throw StateError('Could not encode PNG.');
+      return data.buffer.asUint8List();
+    } finally {
+      image.dispose();
+    }
   }
 
   Future<Uint8List> pngToJpeg(Uint8List pngBytes, {int quality = 95}) async {
@@ -61,21 +65,47 @@ class ExportService {
     return cleaned.isEmpty ? 'naqshkaar_design' : cleaned;
   }
 
-  Future<pw.Font> _loadFont(String family) async {
-    final asset = family == 'NotoNastaliqUrdu'
-        ? 'assets/fonts/NotoNastaliqUrdu-Regular.ttf'
-        : 'assets/fonts/Gulzar-Regular.ttf';
-    final bytes = await rootBundle.load(asset);
-    return pw.Font.ttf(bytes);
+  /// Creates a PDF from the already-rendered Flutter canvas.
+  ///
+  /// This is intentionally the primary PDF export path for NaqshKaar. Urdu
+  /// Nastaliq shaping, glyph positioning, line height, shadows, rotation,
+  /// opacity, image cropping and every future canvas effect are first rendered
+  /// by Flutter and then placed 1:1 into the PDF as a page image. This avoids
+  /// a second text-layout engine silently clipping or reshaping Urdu.
+  Future<void> shareRenderedPdf({
+    required ProjectModel project,
+    required List<Uint8List> pagePngs,
+  }) async {
+    if (project.pages.isEmpty) throw StateError('Project has no pages.');
+    if (pagePngs.length != project.pages.length) {
+      throw StateError('PDF export could not render every page.');
+    }
+
+    final doc = pw.Document();
+    for (var i = 0; i < project.pages.length; i++) {
+      final page = project.pages[i];
+      final image = pw.MemoryImage(pagePngs[i]);
+      doc.addPage(
+        pw.Page(
+          pageFormat: PdfPageFormat(page.size.width, page.size.height),
+          margin: pw.EdgeInsets.zero,
+          build: (_) => pw.SizedBox(
+            width: page.size.width,
+            height: page.size.height,
+            child: pw.Image(image, fit: pw.BoxFit.fill),
+          ),
+        ),
+      );
+    }
+
+    await Printing.sharePdf(
+      bytes: await doc.save(),
+      filename: '${_safeName(project.name)}.pdf',
+    );
   }
 
-  /// Creates a PDF directly from the design model while preserving the Urdu
-  /// font, RTL direction and the complete text box.  The old implementation
-  /// put pw.Text inside a fixed-height SizedBox using e.height. Nastaliq glyphs
-  /// have tall ascenders/descenders and can extend beyond that box, so PDF
-  /// clipping could cut words even though they looked correct on the canvas.
-  /// Text is now width-constrained but height-auto, allowing every wrapped
-  /// line and its Nastaliq glyphs to be painted completely.
+  // Kept as a model-based fallback for callers that need a selectable-text PDF.
+  // The workspace uses shareRenderedPdf so the exported PDF matches the canvas.
   Future<void> sharePdf(ProjectModel project) async {
     if (project.pages.isEmpty) throw StateError('Project has no pages.');
     final doc = pw.Document();
@@ -85,7 +115,11 @@ class ExportService {
       final normalized = family == 'NotoNastaliqUrdu' ? family : 'Gulzar';
       final cached = fontCache[normalized];
       if (cached != null) return cached;
-      final loaded = await _loadFont(normalized);
+      final asset = normalized == 'NotoNastaliqUrdu'
+          ? 'assets/fonts/NotoNastaliqUrdu-Regular.ttf'
+          : 'assets/fonts/Gulzar-Regular.ttf';
+      final bytes = await rootBundle.load(asset);
+      final loaded = pw.Font.ttf(bytes);
       fontCache[normalized] = loaded;
       return loaded;
     }
@@ -95,7 +129,6 @@ class ExportService {
       for (final e in page.elements.where((e) => !e.hidden && e.kind == ElementKind.text)) {
         textFonts[e.id] = await fontFor(e.fontFamily);
       }
-
       doc.addPage(
         pw.Page(
           pageFormat: PdfPageFormat(page.size.width, page.size.height),
@@ -138,10 +171,6 @@ class ExportService {
                       top: e.y,
                       child: pw.Container(
                         width: e.width,
-                        // IMPORTANT: do not force e.height here. A fixed PDF
-                        // height clips Nastaliq glyphs and wrapped Urdu lines.
-                        // The width remains constrained so normal wrapping is
-                        // preserved, while height is allowed to grow naturally.
                         child: pw.Text(
                           e.text.isEmpty ? 'Text' : e.text,
                           textAlign: _pdfAlign(e.textAlign),
