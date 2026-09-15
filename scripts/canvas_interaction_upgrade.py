@@ -22,7 +22,9 @@ text = text.replace(
 move_pattern = r'  void moveSelectedBy\(double dx, double dy\) \{.*?\n  \}\n\n  /// Resizes'
 move_replacement = r'''  void moveSelectedBy(double dx, double dy) {
     final e = selected;
-    if (e == null || e.locked) return;
+    if (e == null || e.locked) {
+      return;
+    }
     var nextX = (e.x + dx).clamp(-e.width * .75, page.size.width - e.width * .25).toDouble();
     var nextY = (e.y + dy).clamp(-e.height * .75, page.size.height - e.height * .25).toDouble();
     const snap = 10.0;
@@ -92,7 +94,9 @@ move_replacement = r'''  void moveSelectedBy(double dx, double dy) {
   /// Small precision movement for future keyboard/accessibility controls.
   void nudgeSelected(double dx, double dy) {
     final e = selected;
-    if (e == null || e.locked) return;
+    if (e == null || e.locked) {
+      return;
+    }
     _checkpoint();
     e.x = (e.x + dx).clamp(-e.width * .75, page.size.width - e.width * .25).toDouble();
     e.y = (e.y + dy).clamp(-e.height * .75, page.size.height - e.height * .25).toDouble();
@@ -120,7 +124,7 @@ canvas_path = Path('lib/widgets/design_canvas.dart')
 canvas = canvas_path.read_text()
 needle = "        Positioned(\n          top: 8,\n          right: 8,\n          child: Material("
 if needle in canvas and 'AlignmentGuidesPainter' not in canvas:
-    overlay = '''        if (controller.guideX != null || controller.guideY != null)
+    overlay = '''        if (controller.guideX != null || controller.guideY != null) {
           Positioned.fill(
             child: IgnorePointer(
               child: CustomPaint(
@@ -133,6 +137,7 @@ if needle in canvas and 'AlignmentGuidesPainter' not in canvas:
               ),
             ),
           ),
+        },
 '''
     canvas = canvas.replace(needle, overlay + needle, 1)
     canvas += '''\n\nclass _AlignmentGuidesPainter extends CustomPainter {
@@ -172,5 +177,5 @@ if needle in canvas and 'AlignmentGuidesPainter' not in canvas:
   bool shouldRepaint(covariant _AlignmentGuidesPainter old) => old.guideX != guideX || old.guideY != guideY || old.color != color || old.strokeWidth != strokeWidth;
 }
 '''
-canvas_path.write_text(canvas)
+    canvas_path.write_text(canvas)
 print('Canvas smart snapping, guides and precision nudge upgrade applied')
