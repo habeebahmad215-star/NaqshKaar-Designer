@@ -98,19 +98,26 @@ class _DesignCanvasState extends State<DesignCanvas> {
         child = Container(
           decoration: _decoration(e, isShape: false),
           alignment: Alignment.center,
-          child: Text(
-            e.text.isEmpty ? 'Text' : e.text,
-            textAlign: e.textAlign,
-            textDirection: e.textDirection,
-            style: TextStyle(
-              fontFamily: e.fontFamily,
-              fontSize: e.fontSize,
-              color: e.color,
-              fontWeight: e.bold ? FontWeight.bold : FontWeight.normal,
-              fontStyle: e.italic ? FontStyle.italic : FontStyle.normal,
-              height: e.lineHeight,
-              letterSpacing: e.letterSpacing,
-              shadows: _shadows(e).map((s) => Shadow(color: s.color, blurRadius: s.blurRadius, offset: s.offset)).toList(),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.center,
+            child: SizedBox(
+              width: e.width,
+              child: Text(
+                e.text.isEmpty ? 'Text' : e.text,
+                textAlign: e.textAlign,
+                textDirection: e.textDirection,
+                style: TextStyle(
+                  fontFamily: e.fontFamily,
+                  fontSize: e.fontSize,
+                  color: e.color,
+                  fontWeight: e.bold ? FontWeight.bold : FontWeight.normal,
+                  fontStyle: e.italic ? FontStyle.italic : FontStyle.normal,
+                  height: e.lineHeight,
+                  letterSpacing: e.letterSpacing,
+                  shadows: _shadows(e).map((s) => Shadow(color: s.color, blurRadius: s.blurRadius, offset: s.offset)).toList(),
+                ),
+              ),
             ),
           ),
         );
