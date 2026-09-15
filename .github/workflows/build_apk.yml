@@ -50,8 +50,17 @@ jobs:
             https://raw.githubusercontent.com/googlefonts/Gulzar/main/fonts/ttf/Gulzar-Regular.ttf
           curl -fL --retry 3 -o assets/fonts/NotoNastaliqUrdu-Regular.ttf \
             https://raw.githubusercontent.com/harfbuzz/harfbuzz-monster-fonts/main/NotoNastaliqUrdu-Regular.ttf
-          test -s assets/fonts/Gulzar-Regular.ttf
-          test -s assets/fonts/NotoNastaliqUrdu-Regular.ttf
+          curl -fL --retry 3 -o assets/fonts/MehrNastaliq.ttf \
+            https://raw.githubusercontent.com/abbassiddiqi/mehr/master/mehr.ttf
+          curl -fL --retry 3 -o assets/fonts/AlviNastaleeq.ttf \
+            https://raw.githubusercontent.com/imrofayel/UrduFonts/master/fonts/AlviNastaleeq.ttf
+          curl -fL --retry 3 -o assets/fonts/JameelNooriNastaleeq.ttf \
+            https://raw.githubusercontent.com/abid-mujtaba/ttf-jameel-noori-nastaleeq/master/Jameel%20Noori%20Nastaleeq.ttf
+          curl -fL --retry 3 -o assets/fonts/AlMajeedQuranic.ttf \
+            https://fontly-virid.vercel.app/fonts/ttf/al-majeed-quranic-font-shiped.ttf
+          curl -fL --retry 3 -o assets/fonts/BombayBlack.ttf \
+            https://www.urdufont.org/download.php?id=737645
+          for font in assets/fonts/*.ttf; do test -s "$font" || exit 1; done
 
       - name: Get dependencies
         run: flutter pub get
@@ -61,6 +70,9 @@ jobs:
 
       - name: Normalize generated compatibility issue
         run: sed -i 's/Icons\.rotate_0_degrees_ccw_rounded/Icons.rotate_left_rounded/g' lib/screens/workspace_screen.dart
+
+      - name: Apply premium Urdu font catalog
+        run: python3 scripts/font_catalog_upgrade.py
 
       - name: Apply final professional toolbar polish
         run: python3 scripts/final_toolbar_polish.py
