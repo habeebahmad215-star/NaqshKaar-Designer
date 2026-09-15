@@ -82,6 +82,9 @@ jobs:
       - name: Apply advanced Layers Studio
         run: python3 scripts/advanced_layers_upgrade.py
 
+      - name: Apply Typography Studio
+        run: python3 scripts/typography_studio_upgrade.py
+
       - name: Apply reliability and autosave upgrade
         run: python3 scripts/reliability_upgrade.py
 
