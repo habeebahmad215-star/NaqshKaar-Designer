@@ -101,6 +101,9 @@ jobs:
       - name: Apply demo-inspired premium editor interface
         run: python3 scripts/demo_interface_upgrade.py
 
+      - name: Apply reference Composer and Canvas polish
+        run: python3 scripts/reference_composer_polish.py
+
       - name: Suppress only obsolete legacy chrome helper warnings
         run: sed -i '1i// ignore_for_file: unused_element' lib/screens/workspace_screen.dart
 
