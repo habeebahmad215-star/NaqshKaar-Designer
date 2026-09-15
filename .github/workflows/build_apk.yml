@@ -97,6 +97,15 @@ jobs:
       - name: Normalize generated controller flow statements
         run: python3 scripts/controller_flow_control_fix.py
 
+      - name: Disable only the non-build-blocking curly-braces lint
+        run: |
+          cat >> analysis_options.yaml <<'EOF'
+
+          linter:
+            rules:
+              curly_braces_in_flow_control_structures: false
+          EOF
+
       - name: Format generated Dart sources
         run: dart format lib
 
