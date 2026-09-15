@@ -3,16 +3,20 @@ from pathlib import Path
 WS = Path('lib/screens/workspace_screen.dart')
 ws = WS.read_text(encoding='utf-8')
 
-# Make every existing bottom sheet use the same premium rounded-card surface.
-if "backgroundColor: Colors.white," not in ws:
-    ws = ws.replace(
-        "      context: context,\n      showDragHandle:",
-        "      context: context,\n      backgroundColor: Colors.white,\n      shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),\n      showDragHandle:",
-    )
-    ws = ws.replace(
-        "      context: context,\n      isScrollControlled: true,\n      showDragHandle:",
-        "      context: context,\n      isScrollControlled: true,\n      backgroundColor: Colors.white,\n      shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),\n      showDragHandle:",
-    )
+# Normalize every build-time bottom sheet to the same premium rounded-card surface.
+# Keep this targeted so already-polished sheets are not modified twice.
+sheet_surface = (
+    "      backgroundColor: Colors.white,\n"
+    "      shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),\n"
+)
+ws = ws.replace(
+    "      context: context,\n      showDragHandle:",
+    "      context: context,\n" + sheet_surface + "      showDragHandle:",
+)
+ws = ws.replace(
+    "      context: context,\n      isScrollControlled: true,\n      showDragHandle:",
+    "      context: context,\n      isScrollControlled: true,\n" + sheet_surface + "      showDragHandle:",
+)
 
 
 def replace_method(source: str, signature: str, replacement: str) -> str:
