@@ -48,20 +48,28 @@ move_replacement = r'''  void moveSelectedBy(double dx, double dy) {
       yTargets.addAll([other.y, other.y + other.height / 2, other.y + other.height]);
     }
     for (final anchor in xAnchors) {
-      final target = xTargets.cast<double>().fold<double?>(null, (best, value) {
+      final target = xTargets.fold<double?>(null, (best, value) {
         if ((anchor.position - value).abs() > snap) return best;
         if (best == null || (anchor.position - value).abs() < (anchor.position - best).abs()) return value;
         return best;
       });
-      if (target != null) { nextX += target - anchor.position; gx = target; break; }
+      if (target != null) {
+        nextX += target - anchor.position;
+        gx = target;
+        break;
+      }
     }
     for (final anchor in yAnchors) {
-      final target = yTargets.cast<double>().fold<double?>(null, (best, value) {
+      final target = yTargets.fold<double?>(null, (best, value) {
         if ((anchor.position - value).abs() > snap) return best;
         if (best == null || (anchor.position - value).abs() < (anchor.position - best).abs()) return value;
         return best;
       });
-      if (target != null) { nextY += target - anchor.position; gy = target; break; }
+      if (target != null) {
+        nextY += target - anchor.position;
+        gy = target;
+        break;
+      }
     }
 
     e.x = nextX;
@@ -140,8 +148,12 @@ if needle in canvas and 'AlignmentGuidesPainter' not in canvas:
         traveled += dash + gap;
       }
     }
-    if (guideX != null) dashedLine(Offset(guideX!, 0), Offset(guideX!, size.height));
-    if (guideY != null) dashedLine(Offset(0, guideY!), Offset(size.width, guideY!));
+    if (guideX != null) {
+      dashedLine(Offset(guideX!, 0), Offset(guideX!, size.height));
+    }
+    if (guideY != null) {
+      dashedLine(Offset(0, guideY!), Offset(size.width, guideY!));
+    }
   }
 
   @override
