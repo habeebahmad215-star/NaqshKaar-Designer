@@ -97,14 +97,8 @@ jobs:
       - name: Normalize generated controller flow statements
         run: python3 scripts/controller_flow_control_fix.py
 
-      - name: Final Dart lint hardening
-        run: python3 scripts/final_dart_lint_hardening.py
-
       - name: Format generated Dart sources
         run: dart format lib
-
-      - name: Final pre-analyze Dart lint hardening
-        run: python3 scripts/final_dart_lint_hardening.py
 
       - name: Analyze
         run: flutter analyze
