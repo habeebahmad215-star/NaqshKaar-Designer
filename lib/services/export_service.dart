@@ -13,11 +13,23 @@ import 'package:flutter/services.dart' show rootBundle;
 import '../models/design_models.dart';
 
 class ExportService {
+  static const int _maxRasterPixels = 4096 * 4096;
+
   Future<Uint8List> capturePng(GlobalKey key, double logicalWidth, double targetWidth) async {
     final boundary = key.currentContext?.findRenderObject() as RenderRepaintBoundary?;
     if (boundary == null) throw StateError('Canvas is not ready for export.');
     if (!boundary.hasSize) throw StateError('Canvas has not finished rendering.');
-    final ratio = (targetWidth / logicalWidth).clamp(0.25, 8.0).toDouble();
+
+    // Rendering a very large artboard at a device-independent pixel ratio can
+    // allocate hundreds of MB and kill the Android process. Keep ordinary
+    // 1080/2048/4096 designs at their requested width, while safely limiting
+    // extreme custom canvases to a maximum raster budget.
+    final logicalHeight = boundary.size.height;
+    final requestedRatio = targetWidth / logicalWidth;
+    final safeRatio = logicalWidth <= 0 || logicalHeight <= 0
+        ? requestedRatio
+        : mathMin(requestedRatio, mathSqrt(_maxRasterPixels / (logicalWidth * logicalHeight)));
+    final ratio = safeRatio.clamp(0.25, 8.0).toDouble();
     final image = await boundary.toImage(pixelRatio: ratio);
     try {
       final data = await image.toByteData(format: ui.ImageByteFormat.png);
@@ -27,6 +39,9 @@ class ExportService {
       image.dispose();
     }
   }
+
+  double mathMin(double a, double b) => a < b ? a : b;
+  double mathSqrt(double value) => value <= 0 ? 0 : value.sqrt();
 
   Future<Uint8List> pngToJpeg(Uint8List pngBytes, {int quality = 95}) async {
     final decoded = img.decodeImage(pngBytes);
