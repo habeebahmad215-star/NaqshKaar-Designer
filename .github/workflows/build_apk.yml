@@ -83,6 +83,9 @@ jobs:
       - name: Apply reliability and autosave upgrade
         run: python3 scripts/reliability_upgrade.py
 
+      - name: Apply export memory safety
+        run: python3 scripts/export_safety_upgrade.py
+
       - name: Analyze
         run: flutter analyze
 
