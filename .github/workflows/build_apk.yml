@@ -94,6 +94,9 @@ jobs:
       - name: Apply export memory safety
         run: python3 scripts/export_safety_upgrade.py
 
+      - name: Normalize generated controller flow statements
+        run: python3 scripts/controller_flow_control_fix.py
+
       - name: Final Dart lint hardening
         run: python3 scripts/final_dart_lint_hardening.py
 
