@@ -97,6 +97,9 @@ jobs:
       - name: Normalize generated controller flow statements
         run: python3 scripts/controller_flow_control_fix.py
 
+      - name: Apply demo-inspired premium editor interface
+        run: python3 scripts/demo_interface_upgrade.py
+
       - name: Disable only the non-build-blocking curly-braces lint
         run: |
           python3 - <<'PY'
