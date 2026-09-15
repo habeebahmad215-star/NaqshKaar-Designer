@@ -92,17 +92,17 @@ class WorkspaceController extends ChangeNotifier {
     final right = handle.contains('right');
     final top = handle.contains('top');
     final bottom = handle.contains('bottom');
-    if (left) newWidth -= localDx;
-    if (right) newWidth += localDx;
-    if (top) newHeight -= localDy;
-    if (bottom) newHeight += localDy;
+    if (left) { newWidth -= localDx; }
+    if (right) { newWidth += localDx; }
+    if (top) { newHeight -= localDy; }
+    if (bottom) { newHeight += localDy; }
     if (e.kind == ElementKind.image && (left || right)) {
       final corner = top || bottom;
       if (corner) {
         final ratio = e.height <= 0 ? 1.0 : e.width / e.height;
         final widthDriven = newWidth / ratio;
         final heightDriven = newHeight * ratio;
-        if (localDx.abs() >= localDy.abs()) newHeight = widthDriven; else newWidth = heightDriven;
+        if (localDx.abs() >= localDy.abs()) { newHeight = widthDriven; } else { newWidth = heightDriven; }
       }
     }
     newWidth = newWidth.clamp(minSize, page.size.width * 2).toDouble();
