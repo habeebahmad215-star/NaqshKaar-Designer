@@ -1,4 +1,5 @@
 name: Build NaqshKaar Designer
+# CI retry trigger: previous run ended as a startup failure before any job was created.
 
 on:
   workflow_dispatch:
