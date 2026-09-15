@@ -85,7 +85,7 @@ class WorkspaceController extends ChangeNotifier {
 
     // Corner handles on images are proportional. This keeps photographs and
     // imported artwork from becoming accidentally stretched on mobile.
-    if (e.kind == ElementKind.image && left || e.kind == ElementKind.image && right) {
+    if (e.kind == ElementKind.image && (left || right)) {
       final corner = top || bottom;
       if (corner) {
         final ratio = e.height <= 0 ? 1.0 : e.width / e.height;
