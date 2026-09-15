@@ -1,11 +1,10 @@
 from pathlib import Path
 
-path = Path('lib/state/workspace_controller.dart')
-text = path.read_text(encoding='utf-8')
+# Final pass over every generated Dart source. The upgrade scripts generate code
+# dynamically, so this deliberately runs after all feature generators.
+ROOT = Path('lib')
 
-# Build a masked copy of Dart source. Strings and comments are replaced with
-# spaces while preserving offsets, so an `if` inside text/comments can never
-# be mistaken for executable code.
+
 def mask_non_code(source):
     out = list(source)
     i = 0
@@ -55,7 +54,6 @@ def mask_non_code(source):
                     out[i] = ' '
                 i += 1
             continue
-        # string state
         if len(quote) == 3 and source.startswith(quote, i):
             out[i:i + 3] = [' '] * 3
             i += 3
@@ -83,10 +81,9 @@ def mask_non_code(source):
 def matching_paren(masked, opening):
     depth = 0
     for i in range(opening, len(masked)):
-        ch = masked[i]
-        if ch == '(':
+        if masked[i] == '(':
             depth += 1
-        elif ch == ')':
+        elif masked[i] == ')':
             depth -= 1
             if depth == 0:
                 return i
@@ -109,6 +106,9 @@ def find_single_statement_ifs(source):
                     while body < len(masked) and masked[body].isspace():
                         body += 1
                     if body < len(masked) and masked[body] != '{':
+                        # This lint rule concerns a single executable statement;
+                        # semicolon is a safe boundary for return/continue/break
+                        # and ordinary assignment/expression statements.
                         semi = masked.find(';', body)
                         if semi >= 0:
                             matches.append((i, body, semi + 1))
@@ -123,36 +123,38 @@ def expand(source):
     if not matches:
         return source, 0
     result = source
-    changed = 0
-    # Work backwards so all source offsets remain valid.
     for start, body, end in reversed(matches):
         condition_end = body
         while condition_end > start and result[condition_end - 1].isspace():
             condition_end -= 1
         condition = result[start:condition_end]
         statement = result[body:end]
-        indent_start = result.rfind('\n', 0, start) + 1
-        indent = result[indent_start:start]
+        line_start = result.rfind('\n', 0, start) + 1
+        indent = result[line_start:start]
         if indent.strip():
             indent = ''
         result = result[:start] + condition + '{\n' + indent + '  ' + statement.strip() + '\n' + indent + '}' + result[end:]
-        changed += 1
-    return result, changed
+    return result, len(matches)
 
-# Repeat because expanding an outer statement can expose another unbraced if
-# inside its body. A hard upper bound protects the CI step from malformed input.
-for _ in range(20):
-    new_text, changed = expand(text)
-    text = new_text
-    if changed == 0:
-        break
-else:
-    raise SystemExit('Final Dart lint hardening exceeded the rewrite safety limit.')
 
-remaining = find_single_statement_ifs(text)
-if remaining:
-    lines = ', '.join(str(text.count('\n', 0, start) + 1) for start, _, _ in remaining[:12])
-    raise SystemExit('Final Dart lint hardening verification failed at line(s): ' + lines)
+changed_files = 0
+changed_statements = 0
+for path in sorted(ROOT.rglob('*.dart')):
+    text = path.read_text(encoding='utf-8')
+    for _ in range(20):
+        new_text, changed = expand(text)
+        text = new_text
+        changed_statements += changed
+        if changed == 0:
+            break
+    else:
+        raise SystemExit(f'Lint hardening exceeded rewrite safety limit in {path}')
+    remaining = find_single_statement_ifs(text)
+    if remaining:
+        lines = ', '.join(str(text.count('\n', 0, start) + 1) for start, _, _ in remaining[:12])
+        raise SystemExit(f'Final Dart lint hardening failed in {path} at line(s): {lines}')
+    if text != path.read_text(encoding='utf-8'):
+        path.write_text(text, encoding='utf-8')
+        changed_files += 1
 
-path.write_text(text, encoding='utf-8')
-print('Final Dart lint hardening passed: no executable single-statement if controls remain.')
+print(f'Final Dart lint hardening passed across lib: {changed_files} file(s), {changed_statements} flow statement(s) normalized.')
