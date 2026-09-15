@@ -33,3 +33,18 @@ flutter:
     - family: NotoNastaliqUrdu
       fonts:
         - asset: assets/fonts/NotoNastaliqUrdu-Regular.ttf
+    - family: MehrNastaliq
+      fonts:
+        - asset: assets/fonts/MehrNastaliq.ttf
+    - family: AlMajeedQuranic
+      fonts:
+        - asset: assets/fonts/AlMajeedQuranic.ttf
+    - family: BombayBlack
+      fonts:
+        - asset: assets/fonts/BombayBlack.ttf
+    - family: AlviNastaleeq
+      fonts:
+        - asset: assets/fonts/AlviNastaleeq.ttf
+    - family: JameelNooriNastaleeq
+      fonts:
+        - asset: assets/fonts/JameelNooriNastaleeq.ttf
