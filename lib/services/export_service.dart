@@ -69,6 +69,13 @@ class ExportService {
     return pw.Font.ttf(bytes);
   }
 
+  /// Creates a PDF directly from the design model while preserving the Urdu
+  /// font, RTL direction and the complete text box.  The old implementation
+  /// put pw.Text inside a fixed-height SizedBox using e.height. Nastaliq glyphs
+  /// have tall ascenders/descenders and can extend beyond that box, so PDF
+  /// clipping could cut words even though they looked correct on the canvas.
+  /// Text is now width-constrained but height-auto, allowing every wrapped
+  /// line and its Nastaliq glyphs to be painted completely.
   Future<void> sharePdf(ProjectModel project) async {
     if (project.pages.isEmpty) throw StateError('Project has no pages.');
     final doc = pw.Document();
@@ -122,18 +129,21 @@ class ExportService {
                       child: pw.SizedBox(
                         width: e.width,
                         height: e.height,
-                        child: pw.Image(pw.MemoryImage(e.imageBytes!), fit: pw.BoxFit.fill),
+                        child: pw.Image(pw.MemoryImage(e.imageBytes!), fit: pw.BoxFit.cover),
                       ),
                     )
                   else if (e.kind == ElementKind.text)
                     pw.Positioned(
                       left: e.x,
                       top: e.y,
-                      child: pw.SizedBox(
+                      child: pw.Container(
                         width: e.width,
-                        height: e.height,
+                        // IMPORTANT: do not force e.height here. A fixed PDF
+                        // height clips Nastaliq glyphs and wrapped Urdu lines.
+                        // The width remains constrained so normal wrapping is
+                        // preserved, while height is allowed to grow naturally.
                         child: pw.Text(
-                          e.text,
+                          e.text.isEmpty ? 'Text' : e.text,
                           textAlign: _pdfAlign(e.textAlign),
                           textDirection: e.textDirection == TextDirection.rtl ? pw.TextDirection.rtl : pw.TextDirection.ltr,
                           style: pw.TextStyle(
@@ -142,6 +152,7 @@ class ExportService {
                             fontWeight: e.bold ? pw.FontWeight.bold : pw.FontWeight.normal,
                             fontStyle: e.italic ? pw.FontStyle.italic : pw.FontStyle.normal,
                             color: PdfColor.fromInt(e.colorValue),
+                            letterSpacing: e.letterSpacing,
                           ),
                         ),
                       ),
