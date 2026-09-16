@@ -31,7 +31,6 @@ move_replacement = r'''  void moveSelectedBy(double dx, double dy) {
     double? gx;
     double? gy;
 
-    // Snap the element's three horizontal anchors to the page and other objects.
     final xAnchors = <({double position, double delta})>[
       (position: nextX, delta: 0),
       (position: nextX + e.width / 2, delta: e.width / 2),
@@ -53,12 +52,8 @@ move_replacement = r'''  void moveSelectedBy(double dx, double dy) {
     }
     for (final anchor in xAnchors) {
       final target = xTargets.fold<double?>(null, (best, value) {
-        if ((anchor.position - value).abs() > snap) {
-          return best;
-        }
-        if (best == null || (anchor.position - value).abs() < (anchor.position - best).abs()) {
-          return value;
-        }
+        if ((anchor.position - value).abs() > snap) return best;
+        if (best == null || (anchor.position - value).abs() < (anchor.position - best).abs()) return value;
         return best;
       });
       if (target != null) {
@@ -69,12 +64,8 @@ move_replacement = r'''  void moveSelectedBy(double dx, double dy) {
     }
     for (final anchor in yAnchors) {
       final target = yTargets.fold<double?>(null, (best, value) {
-        if ((anchor.position - value).abs() > snap) {
-          return best;
-        }
-        if (best == null || (anchor.position - value).abs() < (anchor.position - best).abs()) {
-          return value;
-        }
+        if ((anchor.position - value).abs() > snap) return best;
+        if (best == null || (anchor.position - value).abs() < (anchor.position - best).abs()) return value;
         return best;
       });
       if (target != null) {
@@ -94,9 +85,7 @@ move_replacement = r'''  void moveSelectedBy(double dx, double dy) {
   /// Small precision movement for future keyboard/accessibility controls.
   void nudgeSelected(double dx, double dy) {
     final e = selected;
-    if (e == null || e.locked) {
-      return;
-    }
+    if (e == null || e.locked) return;
     _checkpoint();
     e.x = (e.x + dx).clamp(-e.width * .75, page.size.width - e.width * .25).toDouble();
     e.y = (e.y + dy).clamp(-e.height * .75, page.size.height - e.height * .25).toDouble();
@@ -113,31 +102,27 @@ text = text.replace(
     '  void finishContinuousEdit() { _continuousCheckpointActive = false; notifyListeners(); }',
     '  void finishContinuousEdit() { _continuousCheckpointActive = false; _clearGuides(); notifyListeners(); }'
 )
-for old, new in [
-    ('selectedId = null; _changed(); }', 'selectedId = null; _clearGuides(); _changed(); }'),
-    ('selectedId = null; _changed(); }\n  void duplicatePage', 'selectedId = null; _clearGuides(); _changed(); }\n  void duplicatePage'),
-]:
-    text = text.replace(old, new)
+text = text.replace('selectedId = null; _changed(); }', 'selectedId = null; _clearGuides(); _changed(); }')
 controller_path.write_text(text)
 
 canvas_path = Path('lib/widgets/design_canvas.dart')
 canvas = canvas_path.read_text()
 needle = "        Positioned(\n          top: 8,\n          right: 8,\n          child: Material("
 if needle in canvas and 'AlignmentGuidesPainter' not in canvas:
-    overlay = '''        if (controller.guideX != null || controller.guideY != null) ...[
-          Positioned.fill(
-            child: IgnorePointer(
-              child: CustomPaint(
-                painter: _AlignmentGuidesPainter(
-                  guideX: controller.guideX,
-                  guideY: controller.guideY,
-                  color: const Color(0xFFEF4444),
-                  strokeWidth: 1.0,
-                ),
+    # Keep the Stack children list simple and parser-safe: render one overlay
+    # unconditionally and let the painter no-op when both guides are null.
+    overlay = '''        Positioned.fill(
+          child: IgnorePointer(
+            child: CustomPaint(
+              painter: _AlignmentGuidesPainter(
+                guideX: controller.guideX,
+                guideY: controller.guideY,
+                color: const Color(0xFFEF4444),
+                strokeWidth: 1.0,
               ),
             ),
           ),
-        ],
+        ),
 '''
     canvas = canvas.replace(needle, overlay + needle, 1)
     canvas += '''\n\nclass _AlignmentGuidesPainter extends CustomPainter {
@@ -149,14 +134,13 @@ if needle in canvas and 'AlignmentGuidesPainter' not in canvas:
 
   @override
   void paint(Canvas canvas, Size size) {
+    if (guideX == null && guideY == null) return;
     final paint = Paint()..color = color..strokeWidth = strokeWidth;
     const dash = 7.0;
     const gap = 5.0;
     void dashedLine(Offset a, Offset b) {
       final distance = (b - a).distance;
-      if (distance <= 0) {
-        return;
-      }
+      if (distance <= 0) return;
       final direction = (b - a) / distance;
       var traveled = 0.0;
       while (traveled < distance) {
@@ -165,12 +149,8 @@ if needle in canvas and 'AlignmentGuidesPainter' not in canvas:
         traveled += dash + gap;
       }
     }
-    if (guideX != null) {
-      dashedLine(Offset(guideX!, 0), Offset(guideX!, size.height));
-    }
-    if (guideY != null) {
-      dashedLine(Offset(0, guideY!), Offset(size.width, guideY!));
-    }
+    if (guideX != null) dashedLine(Offset(guideX!, 0), Offset(guideX!, size.height));
+    if (guideY != null) dashedLine(Offset(0, guideY!), Offset(size.width, guideY!));
   }
 
   @override
