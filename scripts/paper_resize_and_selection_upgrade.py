@@ -1,8 +1,8 @@
 from pathlib import Path
 
+# Paper resize UI.
 path = Path('lib/screens/workspace_screen.dart')
 text = path.read_text(encoding='utf-8')
-
 old = """        _mainTool(Icons.layers_outlined, 'Pages', _pagesSheet),
         _mainTool(Icons.tune_rounded, 'Design', _designSheet),
 """
@@ -159,7 +159,6 @@ method = r'''  Future<void> _paperSizeSheet() async {
 if marker not in text:
     raise SystemExit('Paper method insertion marker not found')
 text = text.replace(marker, method + marker, 1)
-
 text += r'''
 
 class _PaperPreset {
@@ -172,4 +171,36 @@ class _PaperPreset {
 }
 '''
 path.write_text(text, encoding='utf-8')
-print('Applied smart paper resize UI')
+
+# Selection geometry normalization. This repairs older projects whose element
+# frames were allowed to grow beyond the page and keeps future selections sane.
+controller_path = Path('lib/state/workspace_controller.dart')
+controller = controller_path.read_text(encoding='utf-8')
+old_select = """  void select(String? id) { selectedId = id; notifyListeners(); }
+"""
+new_select = r'''  void select(String? id) {
+    selectedId = id;
+    final e = selected;
+    if (e != null) _normalizeElementBounds(e);
+    notifyListeners();
+  }
+
+  void _normalizeElementBounds(DesignElement e) {
+    e.width = e.width.clamp(32, page.size.width).toDouble();
+    e.height = e.height.clamp(32, page.size.height).toDouble();
+    final bounds = _rotatedBounds(e, e.x, e.y, e.width, e.height, e.rotation);
+    var x = e.x;
+    var y = e.y;
+    if (bounds.left < 0) x -= bounds.left;
+    if (bounds.top < 0) y -= bounds.top;
+    if (bounds.right > page.size.width) x -= bounds.right - page.size.width;
+    if (bounds.bottom > page.size.height) y -= bounds.bottom - page.size.height;
+    e.x = x;
+    e.y = y;
+  }
+'''
+if old_select not in controller:
+    raise SystemExit('Selection method not found in controller')
+controller = controller.replace(old_select, new_select, 1)
+controller_path.write_text(controller, encoding='utf-8')
+print('Applied selection normalization and smart paper resize')
