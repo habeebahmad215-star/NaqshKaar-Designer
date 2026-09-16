@@ -94,12 +94,6 @@ jobs:
       - name: Apply export memory safety
         run: python3 scripts/export_safety_upgrade.py
 
-      - name: Apply demo-inspired professional workspace UI
-        run: python3 scripts/demo_interface_upgrade.py
-
-      - name: Clean obsolete demo toolbar helpers
-        run: python3 scripts/demo_interface_cleanup.py
-
       - name: Analyze
         run: flutter analyze
 
