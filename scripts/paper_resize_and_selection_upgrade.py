@@ -1,22 +1,28 @@
 from pathlib import Path
+import re
 
-# Paper resize UI.
+# Paper resize UI. The premium toolbar has changed shape several times, so
+# patch the main toolbar semantically instead of relying on one exact line.
 path = Path('lib/screens/workspace_screen.dart')
 text = path.read_text(encoding='utf-8')
-old = """        _mainTool(Icons.layers_outlined, 'Pages', _pagesSheet),
-        _mainTool(Icons.tune_rounded, 'Design', _designSheet),
-"""
-new = """        _mainTool(Icons.layers_outlined, 'Pages', _pagesSheet),
-        _mainTool(Icons.aspect_ratio_rounded, 'Paper', _paperSizeSheet),
-        _mainTool(Icons.tune_rounded, 'Design', _designSheet),
-"""
-if old not in text:
-    raise SystemExit('Main toolbar insertion point not found')
-text = text.replace(old, new, 1)
+
+if "_paperSizeSheet" not in text:
+    toolbar_match = re.search(r"(Widget\s+_mainToolbar\(\).*?children:\s*\[)(.*?)(\n\s*\],\n\s*\),\n\s*\);\n\s*})", text, flags=re.S)
+    if not toolbar_match:
+        # Some generated variants call it _buildMainToolbar.
+        toolbar_match = re.search(r"(Widget\s+_buildMainToolbar\(\).*?children:\s*\[)(.*?)(\n\s*\],\n\s*\),\n\s*\);\n\s*})", text, flags=re.S)
+    if not toolbar_match:
+        raise SystemExit('Main toolbar block not found')
+    body = toolbar_match.group(2)
+    body = body.rstrip()
+    if "'Paper'" not in body and "_paperSizeSheet" not in body:
+        body += "\n          _mainTool(Icons.aspect_ratio_rounded, 'Paper', _paperSizeSheet),"
+    text = text[:toolbar_match.start(2)] + body + text[toolbar_match.end(2):]
 
 marker = """  Future<void> _pickImage() async {
 """
-method = r'''  Future<void> _paperSizeSheet() async {
+if '_paperSizeSheet()' not in text:
+    method = r'''  Future<void> _paperSizeSheet() async {
     final presets = <_PaperPreset>[
       const _PaperPreset('A4', '210 × 297 mm', 2480, 3508, Icons.description_outlined),
       const _PaperPreset('A4 Landscape', '297 × 210 mm', 3508, 2480, Icons.stay_current_landscape_outlined),
@@ -31,89 +37,50 @@ method = r'''  Future<void> _paperSizeSheet() async {
       const _PaperPreset('Instagram Story', '9 : 16', 1080, 1920, Icons.phone_android_outlined),
       const _PaperPreset('YouTube', '16 : 9', 1920, 1080, Icons.ondemand_video_outlined),
     ];
-
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (sheetContext) {
-        return SafeArea(
-          child: SizedBox(
-            height: MediaQuery.sizeOf(context).height * .82,
-            child: Column(
-              children: [
-                const _SheetHeader('Resize Paper', 'Change the artboard anytime without leaving your design'),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: _primary.withValues(alpha: .07),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: _primary.withValues(alpha: .16)),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.aspect_ratio_rounded, color: _primary),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            'Current  ${controller.page.size.width.round()} × ${controller.page.size.height.round()} px',
-                            style: const TextStyle(fontWeight: FontWeight.w800),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+      builder: (sheetContext) => SafeArea(
+        child: SizedBox(
+          height: MediaQuery.sizeOf(context).height * .82,
+          child: Column(
+            children: [
+              const _SheetHeader('Resize Paper', 'Change the artboard anytime without leaving your design'),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(color: _primary.withValues(alpha: .07), borderRadius: BorderRadius.circular(16), border: Border.all(color: _primary.withValues(alpha: .16))),
+                  child: Row(children: [const Icon(Icons.aspect_ratio_rounded, color: _primary), const SizedBox(width: 10), Expanded(child: Text('Current  ${controller.page.size.width.round()} × ${controller.page.size.height.round()} px', style: const TextStyle(fontWeight: FontWeight.w800)))]),
                 ),
-                Expanded(
-                  child: ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 18),
-                    itemCount: presets.length + 1,
-                    separatorBuilder: (_, __) => const SizedBox(height: 7),
-                    itemBuilder: (context, index) {
-                      if (index == presets.length) {
-                        return Card(
-                          elevation: 0,
-                          child: ListTile(
-                            leading: const CircleAvatar(child: Icon(Icons.edit_rounded)),
-                            title: const Text('Custom size', style: TextStyle(fontWeight: FontWeight.w900)),
-                            subtitle: const Text('Enter exact width and height in pixels'),
-                            trailing: const Icon(Icons.chevron_right_rounded),
-                            onTap: () async {
-                              Navigator.pop(sheetContext);
-                              await _customPaperSizeDialog();
-                            },
-                          ),
-                        );
-                      }
-                      final preset = presets[index];
-                      final active = controller.page.size.width.round() == preset.width && controller.page.size.height.round() == preset.height;
-                      return Card(
-                        elevation: 0,
-                        child: ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor: active ? _primary : _primary.withValues(alpha: .08),
-                            child: Icon(preset.icon, color: active ? Colors.white : _primary),
-                          ),
-                          title: Text(preset.name, style: const TextStyle(fontWeight: FontWeight.w900)),
-                          subtitle: Text('${preset.label}  •  ${preset.width} × ${preset.height} px'),
-                          trailing: active ? const Icon(Icons.check_circle_rounded, color: _primary) : const Icon(Icons.chevron_right_rounded),
-                          onTap: () {
-                            controller.resizeCanvas(preset.width.toDouble(), preset.height.toDouble());
-                            Navigator.pop(sheetContext);
-                          },
-                        ),
-                      );
-                    },
-                  ),
+              ),
+              Expanded(
+                child: ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 18),
+                  itemCount: presets.length + 1,
+                  separatorBuilder: (_, __) => const SizedBox(height: 7),
+                  itemBuilder: (context, index) {
+                    if (index == presets.length) {
+                      return Card(elevation: 0, child: ListTile(leading: const CircleAvatar(child: Icon(Icons.edit_rounded)), title: const Text('Custom size', style: TextStyle(fontWeight: FontWeight.w900)), subtitle: const Text('Enter exact width and height in pixels'), trailing: const Icon(Icons.chevron_right_rounded), onTap: () async { Navigator.pop(sheetContext); await _customPaperSizeDialog(); }));
+                    }
+                    final preset = presets[index];
+                    final active = controller.page.size.width.round() == preset.width && controller.page.size.height.round() == preset.height;
+                    return Card(elevation: 0, child: ListTile(
+                      leading: CircleAvatar(backgroundColor: active ? _primary : _primary.withValues(alpha: .08), child: Icon(preset.icon, color: active ? Colors.white : _primary)),
+                      title: Text(preset.name, style: const TextStyle(fontWeight: FontWeight.w900)),
+                      subtitle: Text('${preset.label}  •  ${preset.width} × ${preset.height} px'),
+                      trailing: active ? const Icon(Icons.check_circle_rounded, color: _primary) : const Icon(Icons.chevron_right_rounded),
+                      onTap: () { controller.resizeCanvas(preset.width.toDouble(), preset.height.toDouble()); Navigator.pop(sheetContext); },
+                    ));
+                  },
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
@@ -122,29 +89,15 @@ method = r'''  Future<void> _paperSizeSheet() async {
     final heightController = TextEditingController(text: controller.page.size.height.round().toString());
     final accepted = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('Custom Paper Size', style: TextStyle(fontWeight: FontWeight.w900)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Align(alignment: Alignment.centerLeft, child: Text('Exact artboard dimensions', style: TextStyle(color: Colors.black54))),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(child: TextField(controller: widthController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Width', suffixText: 'px'))),
-                  const SizedBox(width: 12),
-                  Expanded(child: TextField(controller: heightController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Height', suffixText: 'px'))),
-                ],
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
-            FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Resize')),
-          ],
-        );
-      },
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Custom Paper Size', style: TextStyle(fontWeight: FontWeight.w900)),
+        content: Row(children: [
+          Expanded(child: TextField(controller: widthController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Width', suffixText: 'px'))),
+          const SizedBox(width: 12),
+          Expanded(child: TextField(controller: heightController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Height', suffixText: 'px'))),
+        ]),
+        actions: [TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')), FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Resize'))],
+      ),
     );
     if (accepted == true) {
       final width = (double.tryParse(widthController.text) ?? controller.page.size.width).clamp(64, 16000).toDouble();
@@ -156,29 +109,20 @@ method = r'''  Future<void> _paperSizeSheet() async {
   }
 
 '''
-if marker not in text:
-    raise SystemExit('Paper method insertion marker not found')
-text = text.replace(marker, method + marker, 1)
-text += r'''
+    if marker not in text:
+        raise SystemExit('Paper method insertion marker not found')
+    text = text.replace(marker, method + marker, 1)
 
-class _PaperPreset {
-  final String name;
-  final String label;
-  final int width;
-  final int height;
-  final IconData icon;
-  const _PaperPreset(this.name, this.label, this.width, this.height, this.icon);
-}
-'''
 path.write_text(text, encoding='utf-8')
 
-# Selection geometry normalization. This repairs older projects whose element
-# frames were allowed to grow beyond the page and keeps future selections sane.
+# Selection geometry normalization. This repairs old projects whose element
+# frames are larger than the page and prevents selection/move from drifting.
 controller_path = Path('lib/state/workspace_controller.dart')
 controller = controller_path.read_text(encoding='utf-8')
 old_select = """  void select(String? id) { selectedId = id; notifyListeners(); }
 """
-new_select = r'''  void select(String? id) {
+if old_select in controller:
+    new_select = r'''  void select(String? id) {
     selectedId = id;
     final e = selected;
     if (e != null) _normalizeElementBounds(e);
@@ -199,8 +143,7 @@ new_select = r'''  void select(String? id) {
     e.y = y;
   }
 '''
-if old_select not in controller:
-    raise SystemExit('Selection method not found in controller')
-controller = controller.replace(old_select, new_select, 1)
+    controller = controller.replace(old_select, new_select, 1)
 controller_path.write_text(controller, encoding='utf-8')
-print('Applied selection normalization and smart paper resize')
+print('Applied smart paper resize and selection geometry upgrades')
+''
