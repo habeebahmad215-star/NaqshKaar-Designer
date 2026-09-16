@@ -16,5 +16,29 @@ if old_generated in s:
 elif "final catalog = CustomPaint(" not in s:
     raise SystemExit('Generated catalog shape block not found')
 
+# Final numeric normalization for selection-handle dimensions. dart:math
+# min/max return num, while Flutter widget dimensions require double.
+s = s.replace(
+    'math.max(touch, math.min(e.width, 180.0)).toDouble()',
+    '_handleSpan(e.width, touch)',
+)
+s = s.replace(
+    'math.max(touch, math.min(e.height, 180.0)).toDouble()',
+    '_handleSpan(e.height, touch)',
+)
+s = s.replace(
+    'math.max(touch, math.min(e.width, 180.0))',
+    '_handleSpan(e.width, touch)',
+)
+s = s.replace(
+    'math.max(touch, math.min(e.height, 180.0))',
+    '_handleSpan(e.height, touch)',
+)
+if '_handleSpan(double extent, double minimum)' not in s:
+    marker = '  Widget _rotationHandle(DesignElement e) {'
+    helper = '''  double _handleSpan(double extent, double minimum) {\n    final bounded = extent > 180.0 ? 180.0 : extent;\n    return bounded > minimum ? bounded : minimum;\n  }\n\n'''
+    if marker in s:
+        s = s.replace(marker, helper + marker, 1)
+
 p.write_text(s, encoding='utf-8')
-print('Final runtime catalog visibility guard applied without touching GestureDetector structure.')
+print('Final runtime catalog visibility and canvas numeric type safety applied.')
