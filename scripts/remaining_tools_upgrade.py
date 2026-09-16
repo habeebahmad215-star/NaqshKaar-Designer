@@ -41,7 +41,9 @@ if 'void addTable(int rows, int cols)' not in c:
 
 w = W.read_text(encoding='utf-8')
 if "../widgets/studio_add_sheet.dart" not in w:
-    w = w.replace("import '../widgets/design_canvas.dart';", "import '../widgets/design_canvas.dart';\nimport '../widgets/studio_add_sheet.dart';", 1)
+    w = w.replace("import '../widgets/design_canvas.dart';", "import '../widgets/design_canvas.dart';\nimport '../widgets/layers_panel.dart';\nimport '../widgets/studio_add_sheet.dart';", 1)
+elif "../widgets/layers_panel.dart" not in w:
+    w = w.replace("import '../widgets/studio_add_sheet.dart';", "import '../widgets/layers_panel.dart';\nimport '../widgets/studio_add_sheet.dart';", 1)
 
 needle = "_mainTool(Icons.tune_rounded, 'Design', _designSheet),"
 if needle in w and "'Studio', _remainingToolsSheet" not in w:
