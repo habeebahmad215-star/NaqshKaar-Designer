@@ -130,6 +130,9 @@ jobs:
       - name: Deep functional repair and responsive UX pass
         run: python3 scripts/deep_functional_repair.py
 
+      - name: Compact premium home grid
+        run: python3 scripts/home_compact_polish.py
+
       - name: Final catalog renderer safety repair
         run: python3 scripts/final_catalog_render_repair.py
 
