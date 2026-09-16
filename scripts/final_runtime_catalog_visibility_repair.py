@@ -1,10 +1,10 @@
 from pathlib import Path
 
 # Final runtime guard: catalog elements must occupy their full model bounds.
-# The catalog upgrade runs earlier in CI, so this pass targets the generated
-# catalog-rendering block and makes its constraints explicit. Borders also get
-# a guaranteed base stroke so a decorative painter edge case cannot make the
-# selected element appear empty.
+# Keep this pass focused on the catalog painter itself. The canvas interaction
+# layer already owns hit-testing and sizing; wrapping the entire GestureDetector
+# here can create mismatched generated closures when earlier passes have changed
+# the surrounding widget tree.
 p = Path('lib/widgets/design_canvas.dart')
 s = p.read_text(encoding='utf-8')
 
@@ -16,17 +16,5 @@ if old_generated in s:
 elif "final catalog = CustomPaint(" not in s:
     raise SystemExit('Generated catalog shape block not found')
 
-# Ensure every interactive element child is tightly constrained to its Positioned
-# width/height, including catalog painters.
-old_wrap = """            child: GestureDetector(\n              behavior: HitTestBehavior.opaque,"""
-new_wrap = """            child: SizedBox.expand(\n              child: GestureDetector(\n                behavior: HitTestBehavior.opaque,"""
-if old_wrap in s and "child: SizedBox.expand(\n              child: GestureDetector(" not in s:
-    s = s.replace(old_wrap, new_wrap, 1)
-    old_end = """              child: child,\n            ),\n            if (selected && !e.locked) _selectionHandles(e),"""
-    new_end = """                child: child,\n              ),\n            ),\n            if (selected && !e.locked) _selectionHandles(e),"""
-    if old_end not in s:
-        raise SystemExit('Interactive child closing block not found')
-    s = s.replace(old_end, new_end, 1)
-
 p.write_text(s, encoding='utf-8')
-print('Final runtime catalog visibility guard applied.')
+print('Final runtime catalog visibility guard applied without touching GestureDetector structure.')
