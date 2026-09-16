@@ -110,10 +110,22 @@ if 'Future<void> _paperSizeSheet()' not in text:
         raise SystemExit('Paper method insertion marker not found')
     text = text.replace(marker, method + marker, 1)
 
+if 'class _PaperPreset {' not in text:
+    text += r'''
+
+class _PaperPreset {
+  final String name;
+  final String label;
+  final int width;
+  final int height;
+  final IconData icon;
+  const _PaperPreset(this.name, this.label, this.width, this.height, this.icon);
+}
+'''
 path.write_text(text, encoding='utf-8')
 
-# Normalize selection geometry without calling a helper that can be consumed by
-# the older controller flow-control transformer. This keeps the fix stable.
+# Selection geometry normalization. This repairs old projects whose element
+# frames are larger than the page and prevents selection/move from drifting.
 controller_path = Path('lib/state/workspace_controller.dart')
 controller = controller_path.read_text(encoding='utf-8')
 old_select = """  void select(String? id) { selectedId = id; notifyListeners(); }
@@ -142,21 +154,26 @@ if old_select in controller:
   }
 '''
     controller = controller.replace(old_select, new_select, 1)
-controller_path.write_text(controller, encoding='utf-8')
 
-# The class is intentionally in the screen file so the preset data stays local
-# to the paper picker and does not alter the persisted project schema.
-if 'class _PaperPreset {' not in text:
-    text += r'''
+# canvas_interaction_upgrade can replace the move/resize section and consume
+# the helper used by resizeSelectedFromHandle. Keep the helper at the end of
+# the class so subsequent formatting cannot remove it.
+if 'Rect _rotatedBounds(' not in controller:
+    helper = r'''
 
-class _PaperPreset {
-  final String name;
-  final String label;
-  final int width;
-  final int height;
-  final IconData icon;
-  const _PaperPreset(this.name, this.label, this.width, this.height, this.icon);
-}
+  Rect _rotatedBounds(DesignElement e, double x, double y, double width, double height, double angle) {
+    final c = math.cos(angle).abs();
+    final s = math.sin(angle).abs();
+    final boundWidth = width * c + height * s;
+    final boundHeight = width * s + height * c;
+    final centerX = x + width / 2;
+    final centerY = y + height / 2;
+    return Rect.fromCenter(center: Offset(centerX, centerY), width: boundWidth, height: boundHeight);
+  }
 '''
-path.write_text(text, encoding='utf-8')
+    insert_at = controller.rfind('\n}')
+    if insert_at < 0:
+        raise SystemExit('Controller class end not found')
+    controller = controller[:insert_at] + helper + controller[insert_at:]
+controller_path.write_text(controller, encoding='utf-8')
 print('Applied smart paper resize and selection geometry upgrades')
