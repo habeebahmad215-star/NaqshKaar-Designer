@@ -103,6 +103,12 @@ jobs:
       - name: Correct premium workspace UI transformation
         run: python3 scripts/fix_premium_workspace_ui.py
 
+      - name: Apply premium Jameel-first text composer
+        run: python3 scripts/premium_text_composer_upgrade.py
+
+      - name: Wire premium text composer imports
+        run: python3 scripts/premium_text_composer_imports.py
+
       - name: Correct live canvas size panel
         run: python3 scripts/fix_premium_canvas_size.py
 
