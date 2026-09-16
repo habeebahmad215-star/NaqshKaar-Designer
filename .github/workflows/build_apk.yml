@@ -97,6 +97,9 @@ jobs:
       - name: Apply remaining Studio tool hub
         run: python3 scripts/remaining_tools_upgrade.py
 
+      - name: Apply premium non-blocking live-preview controls
+        run: python3 scripts/premium_workspace_ui_upgrade.py
+
       - name: Analyze
         run: flutter analyze
 
