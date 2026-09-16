@@ -9,12 +9,14 @@ class PremiumCatalogSheet extends StatefulWidget {
   final ValueChanged<int> onShape;
   final ValueChanged<int> onBorder;
   final ValueChanged<int> onSpecialText;
+  final int initialTab;
 
   const PremiumCatalogSheet({
     super.key,
     required this.onShape,
     required this.onBorder,
     required this.onSpecialText,
+    this.initialTab = 0,
   });
 
   @override
@@ -23,7 +25,11 @@ class PremiumCatalogSheet extends StatefulWidget {
 
 class _PremiumCatalogSheetState extends State<PremiumCatalogSheet>
     with SingleTickerProviderStateMixin {
-  late final TabController _tabs = TabController(length: 3, vsync: this);
+  late final TabController _tabs = TabController(
+    length: 3,
+    vsync: this,
+    initialIndex: widget.initialTab.clamp(0, 2),
+  );
 
   @override
   void dispose() {
