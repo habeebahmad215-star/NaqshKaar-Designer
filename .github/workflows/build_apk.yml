@@ -112,6 +112,9 @@ jobs:
       - name: Correct live canvas size panel
         run: python3 scripts/fix_premium_canvas_size.py
 
+      - name: Apply smart selection bounds and paper resize controls
+        run: python3 scripts/paper_resize_and_selection_upgrade.py
+
       - name: Fix generated controller flow-control style
         run: python3 scripts/controller_flow_control_fix.py
 
