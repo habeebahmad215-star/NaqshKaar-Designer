@@ -2,26 +2,25 @@ from pathlib import Path
 import re
 
 # Paper resize UI. The premium toolbar has changed shape several times, so
-# patch the main toolbar semantically instead of relying on one exact line.
+# patch it semantically instead of relying on one exact block.
 path = Path('lib/screens/workspace_screen.dart')
 text = path.read_text(encoding='utf-8')
 
-if "_paperSizeSheet" not in text:
-    toolbar_match = re.search(r"(Widget\s+_mainToolbar\(\).*?children:\s*\[)(.*?)(\n\s*\],\n\s*\),\n\s*\);\n\s*})", text, flags=re.S)
-    if not toolbar_match:
-        # Some generated variants call it _buildMainToolbar.
-        toolbar_match = re.search(r"(Widget\s+_buildMainToolbar\(\).*?children:\s*\[)(.*?)(\n\s*\],\n\s*\),\n\s*\);\n\s*})", text, flags=re.S)
-    if not toolbar_match:
-        raise SystemExit('Main toolbar block not found')
-    body = toolbar_match.group(2)
-    body = body.rstrip()
-    if "'Paper'" not in body and "_paperSizeSheet" not in body:
-        body += "\n          _mainTool(Icons.aspect_ratio_rounded, 'Paper', _paperSizeSheet),"
-    text = text[:toolbar_match.start(2)] + body + text[toolbar_match.end(2):]
+has_paper_method = 'Future<void> _paperSizeSheet()' in text
+if not has_paper_method:
+    # Prefer inserting the new action next to Design; fall back to Studio.
+    design_pattern = r"(\s+_mainTool\(Icons\.tune_rounded,\s*'Design'.*?\),)"
+    if re.search(design_pattern, text):
+        text = re.sub(design_pattern, r"\1\n        _mainTool(Icons.aspect_ratio_rounded, 'Paper', _paperSizeSheet),", text, count=1)
+    else:
+        studio_pattern = r"(\s+_mainTool\(Icons\.apps_rounded,\s*'Studio'.*?\),)"
+        if re.search(studio_pattern, text):
+            text = re.sub(studio_pattern, r"        _mainTool(Icons.aspect_ratio_rounded, 'Paper', _paperSizeSheet),\n\1", text, count=1)
+        else:
+            raise SystemExit('Main toolbar anchor not found')
 
-marker = """  Future<void> _pickImage() async {
+    marker = """  Future<void> _pickImage() async {
 """
-if '_paperSizeSheet()' not in text:
     method = r'''  Future<void> _paperSizeSheet() async {
     final presets = <_PaperPreset>[
       const _PaperPreset('A4', '210 × 297 mm', 2480, 3508, Icons.description_outlined),
@@ -146,4 +145,3 @@ if old_select in controller:
     controller = controller.replace(old_select, new_select, 1)
 controller_path.write_text(controller, encoding='utf-8')
 print('Applied smart paper resize and selection geometry upgrades')
-''
