@@ -13,49 +13,23 @@ def patch(path: str, fn):
         print(f'[patched] {path}')
 
 
-# 1) Home: use adaptive tile sizing instead of a fixed four-column phone grid.
 def home_patch(s: str) -> str:
-    s = s.replace(
-        """const SliverGridDelegateWithFixedCrossAxisCount(\n                    crossAxisCount: 4,\n                    mainAxisSpacing: 12,\n                    crossAxisSpacing: 10,\n                    childAspectRatio: .72,\n                  )""",
-        """const SliverGridDelegateWithMaxCrossAxisExtent(\n                    maxCrossAxisExtent: 176,\n                    mainAxisSpacing: 12,\n                    crossAxisSpacing: 10,\n                    childAspectRatio: .96,\n                  )""",
-        1,
-    )
+    s = s.replace("""const SliverGridDelegateWithFixedCrossAxisCount(\n                    crossAxisCount: 4,\n                    mainAxisSpacing: 12,\n                    crossAxisSpacing: 10,\n                    childAspectRatio: .72,\n                  )""", """const SliverGridDelegateWithMaxCrossAxisExtent(\n                    maxCrossAxisExtent: 176,\n                    mainAxisSpacing: 12,\n                    crossAxisSpacing: 10,\n                    childAspectRatio: .96,\n                  )""", 1)
     s = s.replace("const SliverToBoxAdapter(child: SizedBox(height: 88)),", "const SliverToBoxAdapter(child: SizedBox(height: 132)),", 1)
     s = s.replace("height: 190,", "height: 210,", 1)
     s = s.replace("padding: const EdgeInsets.fromLTRB(20, 18, 150, 16),", "padding: const EdgeInsets.fromLTRB(20, 16, 132, 14),", 1)
-    s = s.replace(
-        """                    maxLines: 1,\n                    overflow: TextOverflow.ellipsis,\n                    style: TextStyle(\n                      fontSize: 22,""",
-        """                    maxLines: 2,\n                    softWrap: true,\n                    overflow: TextOverflow.clip,\n                    style: TextStyle(\n                      fontSize: 20,""",
-        1,
-    )
-    s = s.replace(
-        """                    maxLines: 1,\n                    overflow: TextOverflow.ellipsis,\n                    style: TextStyle(\n                      fontFamily: 'JameelNooriNastaleeq',\n                      fontSize: 20,""",
-        """                    maxLines: 2,\n                    softWrap: true,\n                    overflow: TextOverflow.clip,\n                    style: TextStyle(\n                      fontFamily: 'JameelNooriNastaleeq',\n                      fontSize: 18,""",
-        1,
-    )
-    s = s.replace(
-        """                    maxLines: 1,\n                    overflow: TextOverflow.ellipsis,\n                    style: TextStyle(\n                      fontSize: 10.5,""",
-        """                    maxLines: 2,\n                    softWrap: true,\n                    overflow: TextOverflow.clip,\n                    style: TextStyle(\n                      fontSize: 9.5,""",
-        1,
-    )
+    s = s.replace("""                    maxLines: 1,\n                    overflow: TextOverflow.ellipsis,\n                    style: TextStyle(\n                      fontSize: 22,""", """                    maxLines: 2,\n                    softWrap: true,\n                    overflow: TextOverflow.clip,\n                    style: TextStyle(\n                      fontSize: 20,""", 1)
+    s = s.replace("""                    maxLines: 1,\n                    overflow: TextOverflow.ellipsis,\n                    style: TextStyle(\n                      fontFamily: 'JameelNooriNastaleeq',\n                      fontSize: 20,""", """                    maxLines: 2,\n                    softWrap: true,\n                    overflow: TextOverflow.clip,\n                    style: TextStyle(\n                      fontFamily: 'JameelNooriNastaleeq',\n                      fontSize: 18,""", 1)
+    s = s.replace("""                    maxLines: 1,\n                    overflow: TextOverflow.ellipsis,\n                    style: TextStyle(\n                      fontSize: 10.5,""", """                    maxLines: 2,\n                    softWrap: true,\n                    overflow: TextOverflow.clip,\n                    style: TextStyle(\n                      fontSize: 9.5,""", 1)
     s = s.replace("""              padding: const EdgeInsets.fromLTRB(4, 9, 4, 6),""", """              padding: const EdgeInsets.fromLTRB(7, 10, 7, 8),""", 1)
-    s = s.replace(
-        """                    maxLines: 1,\n                    overflow: TextOverflow.ellipsis,\n                    textAlign: TextAlign.center,\n                    style: const TextStyle(\n                      fontSize: 10.5,""",
-        """                    maxLines: 2,\n                    softWrap: true,\n                    overflow: TextOverflow.clip,\n                    textAlign: TextAlign.center,\n                    style: const TextStyle(\n                      fontSize: 11,""",
-        1,
-    )
-    s = s.replace(
-        """                    maxLines: 1,\n                    overflow: TextOverflow.ellipsis,\n                    textAlign: TextAlign.center,\n                    style: const TextStyle(fontSize: 7.5, color: _muted),""",
-        """                    maxLines: 2,\n                    softWrap: true,\n                    overflow: TextOverflow.clip,\n                    textAlign: TextAlign.center,\n                    style: const TextStyle(fontSize: 8.2, color: _muted),""",
-        1,
-    )
+    s = s.replace("""                    maxLines: 1,\n                    overflow: TextOverflow.ellipsis,\n                    textAlign: TextAlign.center,\n                    style: const TextStyle(\n                      fontSize: 10.5,""", """                    maxLines: 2,\n                    softWrap: true,\n                    overflow: TextOverflow.clip,\n                    textAlign: TextAlign.center,\n                    style: const TextStyle(\n                      fontSize: 11,""", 1)
+    s = s.replace("""                    maxLines: 1,\n                    overflow: TextOverflow.ellipsis,\n                    textAlign: TextAlign.center,\n                    style: const TextStyle(fontSize: 7.5, color: _muted),""", """                    maxLines: 2,\n                    softWrap: true,\n                    overflow: TextOverflow.clip,\n                    textAlign: TextAlign.center,\n                    style: const TextStyle(fontSize: 8.2, color: _muted),""", 1)
     return s
 
 
 patch('lib/screens/home_screen.dart', home_patch)
 
 
-# 2) Premium library tabs: horizontal scrolling is intentional on narrow phones.
 def tabs_patch(s: str) -> str:
     old = """            TabBar(\n              controller: _tabs,\n              tabs: const [\n                Tab(text: 'Shapes 100+'),\n                Tab(text: 'Borders 100+'),\n                Tab(text: 'Special Text 100+'),\n              ],\n            ),"""
     new = """            TabBar(\n              controller: _tabs,\n              isScrollable: true,\n              tabAlignment: TabAlignment.start,\n              labelPadding: const EdgeInsets.symmetric(horizontal: 14),\n              tabs: const [\n                Tab(text: 'Shapes • 100+'),\n                Tab(text: 'Borders • 100+'),\n                Tab(text: 'Special Text • 100+'),\n              ],\n            ),"""
@@ -69,26 +43,18 @@ def tabs_patch(s: str) -> str:
 patch('lib/widgets/premium_catalog_sheet.dart', tabs_patch)
 
 
-# 3) Text rendering: never silently scale a user's requested font size down.
 def canvas_patch(s: str) -> str:
     old = """          child: FittedBox(\n            fit: BoxFit.scaleDown,\n            alignment: Alignment.center,\n            child: SizedBox(\n              width: e.width,\n              child: Text("""
     new = """          child: SizedBox(\n            width: e.width,\n            height: e.height,\n            child: Text("""
     if old in s:
         s = s.replace(old, new, 1)
-    # Generated catalog pass can reintroduce the old block; catch it by regex too.
-    s = re.sub(
-        r"\s*child: FittedBox\(\s*fit: BoxFit\.scaleDown,\s*alignment: Alignment\.center,\s*child: SizedBox\(\s*width: e\.width,\s*child: Text\(",
-        "\n          child: SizedBox(\n            width: e.width,\n            height: e.height,\n            child: Text(",
-        s,
-        count=1,
-    )
+    s = re.sub(r"\s*child: FittedBox\(\s*fit: BoxFit\.scaleDown,\s*alignment: Alignment\.center,\s*child: SizedBox\(\s*width: e\.width,\s*child: Text\(", "\n          child: SizedBox(\n            width: e.width,\n            height: e.height,\n            child: Text(", s, count=1)
     return s
 
 
 patch('lib/widgets/design_canvas.dart', canvas_patch)
 
 
-# 4) Catalog labels must distinguish a border from an ordinary shape.
 def workspace_label_patch(s: str) -> str:
     old = """  String _elementLabel(DesignElement element) {\n    switch (element.kind) {\n      case ElementKind.text:"""
     new = """  String _elementLabel(DesignElement element) {\n    if (element.catalogType == 'border') {\n      return 'Border • ${element.width.round()} × ${element.height.round()}';\n    }\n    if (element.catalogType == 'shape') {\n      return 'Shape • ${element.width.round()} × ${element.height.round()}';\n    }\n    switch (element.kind) {\n      case ElementKind.text:"""
@@ -98,7 +64,6 @@ def workspace_label_patch(s: str) -> str:
 patch('lib/screens/workspace_screen.dart', workspace_label_patch)
 
 
-# 5) Font-size control is exactly 5–100 px, with the current value kept readable.
 def font_range_patch(s: str) -> str:
     s = s.replace("_singleSlider('Font Size', element.fontSize, 8, 300", "_singleSlider('Font Size', element.fontSize, 5, 100", 1)
     s = s.replace("e.fontSize.clamp(8, 300)", "e.fontSize.clamp(5, 100)", 1)
@@ -110,16 +75,15 @@ patch('lib/screens/workspace_screen.dart', font_range_patch)
 patch('lib/state/workspace_controller.dart', font_range_patch)
 
 
-# 6) Make the catalog painter repaint whenever its visual parameters change.
 def painter_patch(s: str) -> str:
-    if 'bool shouldRepaint(covariant CatalogShapePainter oldDelegate)' in s:
+    # The catalog generator/final repair owns this method. Do not inject a second
+    # declaration when an earlier pass already supplied one in another formatting style.
+    if 'CatalogShapePainter' in s and 'shouldRepaint' in s:
         return s
     marker = "  @override void paint(Canvas canvas, Size size) {"
     idx = s.find(marker)
     if idx < 0:
         raise SystemExit('CatalogShapePainter paint method not found')
-    # Insert the method immediately before paint so it is unambiguous and survives
-    # the compact generated style used by the catalog source.
     method = "  @override bool shouldRepaint(covariant CatalogShapePainter oldDelegate) => oldDelegate.type != type || oldDelegate.fill != fill || oldDelegate.stroke != stroke || oldDelegate.strokeWidth != strokeWidth || oldDelegate.border != border;\n"
     return s[:idx] + method + s[idx:]
 
@@ -127,7 +91,6 @@ def painter_patch(s: str) -> str:
 patch('lib/widgets/premium_catalogs.dart', painter_patch)
 
 
-# 7) Give border families real visual identities rather than one repeating generic frame.
 def border_patch(s: str) -> str:
     pattern = r"  void _drawBorder\(Canvas c,Rect r,Paint p,int t\)\{.*?\}"
     replacement = '''  void _drawBorder(Canvas c,Rect r,Paint p,int t){
@@ -163,7 +126,6 @@ def border_patch(s: str) -> str:
 patch('lib/widgets/premium_catalogs.dart', border_patch)
 
 
-# 8) Keep the generated catalog shape library deterministic and distinct.
 def catalog_variant_patch(s: str) -> str:
     if '_catalogVariant(Canvas c' in s:
         return s
