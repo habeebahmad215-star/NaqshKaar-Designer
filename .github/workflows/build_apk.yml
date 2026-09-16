@@ -121,6 +121,9 @@ jobs:
       - name: Apply premium editor catalogs and mobile UX fixes
         run: python3 scripts/premium_editor_catalog_upgrade.py
 
+      - name: Repair premium editor catalog integration
+        run: python3 scripts/premium_editor_catalog_repair.py
+
       - name: Disable only the non-build-blocking curly-braces lint
         run: |
           python3 - <<'PY'
