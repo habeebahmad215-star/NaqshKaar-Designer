@@ -102,6 +102,8 @@ jobs:
         run: python3 scripts/final_catalog_render_repair.py
       - name: Final runtime catalog visibility repair
         run: python3 scripts/final_runtime_catalog_visibility_repair.py
+      - name: Normalize editor layer labels
+        run: python3 scripts/pre_editor_ux_layer_label.py
       - name: Deterministic final editor UX repair
         run: python3 scripts/final_editor_ux_repair_v2.py
       - name: Final editor UX safety gate
