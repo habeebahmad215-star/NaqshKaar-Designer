@@ -118,6 +118,9 @@ jobs:
       - name: Fix generated controller flow-control style
         run: python3 scripts/controller_flow_control_fix.py
 
+      - name: Apply premium editor catalogs and mobile UX fixes
+        run: python3 scripts/premium_editor_catalog_upgrade.py
+
       - name: Disable only the non-build-blocking curly-braces lint
         run: |
           python3 - <<'PY'
