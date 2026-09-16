@@ -6,9 +6,7 @@ import re
 path = Path('lib/screens/workspace_screen.dart')
 text = path.read_text(encoding='utf-8')
 
-has_paper_method = 'Future<void> _paperSizeSheet()' in text
-if not has_paper_method:
-    # Prefer inserting the new action next to Design; fall back to Studio.
+if 'Future<void> _paperSizeSheet()' not in text:
     design_pattern = r"(\s+_mainTool\(Icons\.tune_rounded,\s*'Design'.*?\),)"
     if re.search(design_pattern, text):
         text = re.sub(design_pattern, r"\1\n        _mainTool(Icons.aspect_ratio_rounded, 'Paper', _paperSizeSheet),", text, count=1)
@@ -114,8 +112,8 @@ if not has_paper_method:
 
 path.write_text(text, encoding='utf-8')
 
-# Selection geometry normalization. This repairs old projects whose element
-# frames are larger than the page and prevents selection/move from drifting.
+# Normalize selection geometry without calling a helper that can be consumed by
+# the older controller flow-control transformer. This keeps the fix stable.
 controller_path = Path('lib/state/workspace_controller.dart')
 controller = controller_path.read_text(encoding='utf-8')
 old_select = """  void select(String? id) { selectedId = id; notifyListeners(); }
@@ -124,24 +122,41 @@ if old_select in controller:
     new_select = r'''  void select(String? id) {
     selectedId = id;
     final e = selected;
-    if (e != null) _normalizeElementBounds(e);
+    if (e != null) {
+      e.width = e.width.clamp(32, page.size.width).toDouble();
+      e.height = e.height.clamp(32, page.size.height).toDouble();
+      final c = math.cos(e.rotation).abs();
+      final s = math.sin(e.rotation).abs();
+      final boundsW = e.width * c + e.height * s;
+      final boundsH = e.width * s + e.height * c;
+      final left = e.x + e.width / 2 - boundsW / 2;
+      final top = e.y + e.height / 2 - boundsH / 2;
+      final right = e.x + e.width / 2 + boundsW / 2;
+      final bottom = e.y + e.height / 2 + boundsH / 2;
+      if (left < 0) e.x -= left;
+      if (top < 0) e.y -= top;
+      if (right > page.size.width) e.x -= right - page.size.width;
+      if (bottom > page.size.height) e.y -= bottom - page.size.height;
+    }
     notifyListeners();
-  }
-
-  void _normalizeElementBounds(DesignElement e) {
-    e.width = e.width.clamp(32, page.size.width).toDouble();
-    e.height = e.height.clamp(32, page.size.height).toDouble();
-    final bounds = _rotatedBounds(e, e.x, e.y, e.width, e.height, e.rotation);
-    var x = e.x;
-    var y = e.y;
-    if (bounds.left < 0) x -= bounds.left;
-    if (bounds.top < 0) y -= bounds.top;
-    if (bounds.right > page.size.width) x -= bounds.right - page.size.width;
-    if (bounds.bottom > page.size.height) y -= bounds.bottom - page.size.height;
-    e.x = x;
-    e.y = y;
   }
 '''
     controller = controller.replace(old_select, new_select, 1)
 controller_path.write_text(controller, encoding='utf-8')
+
+# The class is intentionally in the screen file so the preset data stays local
+# to the paper picker and does not alter the persisted project schema.
+if 'class _PaperPreset {' not in text:
+    text += r'''
+
+class _PaperPreset {
+  final String name;
+  final String label;
+  final int width;
+  final int height;
+  final IconData icon;
+  const _PaperPreset(this.name, this.label, this.width, this.height, this.icon);
+}
+'''
+path.write_text(text, encoding='utf-8')
 print('Applied smart paper resize and selection geometry upgrades')
