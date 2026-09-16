@@ -25,7 +25,7 @@ class WorkspaceController extends ChangeNotifier {
   bool get canUndo => _history.isNotEmpty;
   bool get canRedo => _future.isNotEmpty;
   void undo() { if (!canUndo) return; _future.add(ProjectModel.fromJson(project.toJson())); project = _history.removeLast(); currentPageIndex = currentPageIndex.clamp(0, project.pages.length - 1); selectedId = null; _changed(); }
-  void redo() { if (!canRedo) return; _history.add(ProjectModel.fromJson(project.toJson())); project = _future.removeLast(); currentPageIndex = currentPageIndex.clamp(0, project.pages.length - 1); selectedId = null; _changed(); }
+  void redo() { if (!canRedo) return; _history.add(ProjectModel.fromJson(project.toJson())); project = _future.removeLast(); selectedId = null; currentPageIndex = currentPageIndex.clamp(0, project.pages.length - 1); _changed(); }
   void select(String? id) { selectedId = id; notifyListeners(); }
 
   DesignElement addText({String text = 'اپنا متن یہاں لکھیں', bool rtl = true}) { _checkpoint(); final e = DesignElement(id: _newId('text'), kind: ElementKind.text, x: page.size.width * .1, y: page.size.height * .35, width: page.size.width * .8, height: 180, text: text, fontSize: 64, textDirection: rtl ? TextDirection.rtl : TextDirection.ltr); page.elements.add(e); selectedId = e.id; _changed(); return e; }
@@ -33,7 +33,7 @@ class WorkspaceController extends ChangeNotifier {
   DesignElement addImage(Uint8List bytes) { _checkpoint(); final e = DesignElement(id: _newId('image'), kind: ElementKind.image, x: page.size.width * .15, y: page.size.height * .2, width: page.size.width * .7, height: page.size.height * .45, imageBytes: bytes); page.elements.add(e); selectedId = e.id; _changed(); return e; }
   void replaceSelectedImage(Uint8List bytes) { final e = selected; if (e == null || e.kind != ElementKind.image || e.locked) return; _checkpoint(); e.imageBytes = bytes; _changed(); }
 
-  void updateSelected({double? x, double? y, double? width, double? height, double? rotation, double? opacity, int? colorValue}) { final e = selected; if (e == null || e.locked) return; _checkpoint(); if (x != null) e.x = x; if (y != null) e.y = y; if (width != null) e.width = width.clamp(20, page.size.width * 2); if (height != null) e.height = height.clamp(20, page.size.height * 2); if (rotation != null) e.rotation = rotation; if (opacity != null) e.opacity = opacity.clamp(0, 1); if (colorValue != null) e.colorValue = colorValue; _changed(); }
+  void updateSelected({double? x, double? y, double? width, double? height, double? rotation, double? opacity, int? colorValue}) { final e = selected; if (e == null || e.locked) return; _checkpoint(); if (x != null) e.x = x; if (y != null) e.y = y; if (width != null) e.width = width.clamp(20, page.size.width).toDouble(); if (height != null) e.height = height.clamp(20, page.size.height).toDouble(); if (rotation != null) e.rotation = rotation; if (opacity != null) e.opacity = opacity.clamp(0, 1); if (colorValue != null) e.colorValue = colorValue; _changed(); }
   void setSelectedOpacity(double value) => updateSelected(opacity: value.clamp(0, 1));
   void resetSelectedRotation() => updateSelected(rotation: 0);
   void setSelectedRadius(double value) { final e = selected; if (e == null || e.kind != ElementKind.shape || e.locked) return; _checkpoint(); e.radius = value.clamp(0, 240); _changed(); }
@@ -47,22 +47,33 @@ class WorkspaceController extends ChangeNotifier {
   void moveSelectedBy(double dx, double dy) {
     final e = selected;
     if (e == null || e.locked) return;
-    var nextX = (e.x + dx).clamp(-e.width * .75, page.size.width - e.width * .25).toDouble();
-    var nextY = (e.y + dy).clamp(-e.height * .75, page.size.height - e.height * .25).toDouble();
-    const snap = 12.0;
+    final bounds = _rotatedBounds(e, e.x + dx, e.y + dy, e.width, e.height, e.rotation);
+    var nextX = e.x + dx;
+    var nextY = e.y + dy;
+    if (bounds.left < 0) nextX -= bounds.left;
+    if (bounds.top < 0) nextY -= bounds.top;
+    if (bounds.right > page.size.width) nextX -= bounds.right - page.size.width;
+    if (bounds.bottom > page.size.height) nextY -= bounds.bottom - page.size.height;
     final centerX = (page.size.width - e.width) / 2;
     final centerY = (page.size.height - e.height) / 2;
-    final rightX = page.size.width - e.width;
-    final bottomY = page.size.height - e.height;
-    for (final target in [0.0, centerX, rightX]) { if ((nextX - target).abs() <= snap) { nextX = target; break; } }
-    for (final target in [0.0, centerY, bottomY]) { if ((nextY - target).abs() <= snap) { nextY = target; break; } }
+    const snap = 12.0;
+    if ((nextX - centerX).abs() <= snap) nextX = centerX;
+    if ((nextY - centerY).abs() <= snap) nextY = centerY;
     e.x = nextX;
     e.y = nextY;
     _changed();
   }
 
-  /// Moves the selected layer to a concrete stack index. The index uses the
-  /// same bottom-to-top ordering as page.elements and is undoable as one action.
+  Rect _rotatedBounds(DesignElement e, double x, double y, double width, double height, double angle) {
+    final c = math.cos(angle).abs();
+    final s = math.sin(angle).abs();
+    final boundWidth = width * c + height * s;
+    final boundHeight = width * s + height * c;
+    final cx = x + width / 2;
+    final cy = y + height / 2;
+    return Rect.fromCenter(center: Offset(cx, cy), width: boundWidth, height: boundHeight);
+  }
+
   void reorderSelectedToIndex(int targetIndex) {
     final e = selected;
     if (e == null || e.locked) return;
@@ -77,8 +88,9 @@ class WorkspaceController extends ChangeNotifier {
     _changed();
   }
 
-  /// Resizes in the element's local coordinate system. Images preserve their
-  /// aspect ratio on corner drags; all objects remain above a safe minimum.
+  /// Resizes in local coordinates and keeps the selection inside the artboard.
+  /// Corner drags on images preserve aspect ratio; rotated objects keep their
+  /// transformed bounds inside the page whenever possible.
   void resizeSelectedFromHandle(String handle, double dx, double dy) {
     final e = selected;
     if (e == null || e.locked) return;
@@ -86,31 +98,52 @@ class WorkspaceController extends ChangeNotifier {
     final localDx = dx * c + dy * s;
     final localDy = -dx * s + dy * c;
     const minSize = 32.0;
+    final maxWidth = page.size.width;
+    final maxHeight = page.size.height;
     var newWidth = e.width;
     var newHeight = e.height;
     final left = handle.contains('left');
     final right = handle.contains('right');
     final top = handle.contains('top');
     final bottom = handle.contains('bottom');
-    if (left) { newWidth -= localDx; }
-    if (right) { newWidth += localDx; }
-    if (top) { newHeight -= localDy; }
-    if (bottom) { newHeight += localDy; }
-    if (e.kind == ElementKind.image && (left || right)) {
-      final corner = top || bottom;
-      if (corner) {
-        final ratio = e.height <= 0 ? 1.0 : e.width / e.height;
-        final widthDriven = newWidth / ratio;
-        final heightDriven = newHeight * ratio;
-        if (localDx.abs() >= localDy.abs()) { newHeight = widthDriven; } else { newWidth = heightDriven; }
+    if (left) newWidth -= localDx;
+    if (right) newWidth += localDx;
+    if (top) newHeight -= localDy;
+    if (bottom) newHeight += localDy;
+
+    if (e.kind == ElementKind.image && (left || right) && (top || bottom)) {
+      final ratio = e.height <= 0 ? 1.0 : e.width / e.height;
+      if (localDx.abs() >= localDy.abs()) {
+        newHeight = newWidth / ratio;
+      } else {
+        newWidth = newHeight * ratio;
       }
     }
-    newWidth = newWidth.clamp(minSize, page.size.width * 2).toDouble();
-    newHeight = newHeight.clamp(minSize, page.size.height * 2).toDouble();
-    final shiftLocalX = left ? e.width - newWidth : 0.0;
-    final shiftLocalY = top ? e.height - newHeight : 0.0;
-    e.x += shiftLocalX * c - shiftLocalY * s;
-    e.y += shiftLocalX * s + shiftLocalY * c;
+
+    newWidth = newWidth.clamp(minSize, maxWidth).toDouble();
+    newHeight = newHeight.clamp(minSize, maxHeight).toDouble();
+
+    var nextX = e.x;
+    var nextY = e.y;
+    if (left) nextX += (e.width - newWidth) * c;
+    if (left) nextY += (e.width - newWidth) * s;
+    if (top) nextX -= (e.height - newHeight) * s;
+    if (top) nextY += (e.height - newHeight) * c;
+
+    final bounds = _rotatedBounds(e, nextX, nextY, newWidth, newHeight, e.rotation);
+    if (bounds.left < 0) {
+      final shift = -bounds.left;
+      nextX += shift;
+    }
+    if (bounds.top < 0) {
+      final shift = -bounds.top;
+      nextY += shift;
+    }
+    if (bounds.right > page.size.width) nextX -= bounds.right - page.size.width;
+    if (bounds.bottom > page.size.height) nextY -= bounds.bottom - page.size.height;
+
+    e.x = nextX;
+    e.y = nextY;
     e.width = newWidth;
     e.height = newHeight;
     _changed();
@@ -128,7 +161,7 @@ class WorkspaceController extends ChangeNotifier {
   void finishContinuousEdit() { _continuousCheckpointActive = false; notifyListeners(); }
 
   void editSelectedText(String value) { final e = selected; if (e == null || e.kind != ElementKind.text || e.locked) return; _checkpoint(); e.text = value; _changed(); }
-  void setSelectedFontSize(double value) { final e = selected; if (e == null || e.kind != ElementKind.text || e.locked) return; _checkpoint(); e.fontSize = value.clamp(8, 300); _changed(); }
+  void setSelectedFontSize(double value) { final e = selected; if (e == null || e.kind != ElementKind.text || e.locked) return; _checkpoint(); e.fontSize = value.clamp(5, 300); _changed(); }
   void setSelectedFont(String family) { final e = selected; if (e == null || e.kind != ElementKind.text || e.locked) return; _checkpoint(); e.fontFamily = family; _changed(); }
   void toggleSelectedBold() { final e = selected; if (e == null || e.kind != ElementKind.text || e.locked) return; _checkpoint(); e.bold = !e.bold; _changed(); }
   void toggleSelectedItalic() { final e = selected; if (e == null || e.kind != ElementKind.text || e.locked) return; _checkpoint(); e.italic = !e.italic; _changed(); }
@@ -144,7 +177,36 @@ class WorkspaceController extends ChangeNotifier {
   void deleteSelected() { final id = selectedId; if (id == null) return; final i = elements.indexWhere((e) => e.id == id); if (i < 0) return; _checkpoint(); elements.removeAt(i); selectedId = null; _changed(); }
   void duplicateSelected() { final e = selected; if (e == null) return; _checkpoint(); final copy = e.clone()..id = _newId('element'); copy.x += 24; copy.y += 24; elements.add(copy); selectedId = copy.id; _changed(); }
   void setBackground(Color color) { _checkpoint(); page.background = color; _changed(); }
-  void resizeCanvas(double width, double height) { if (width < 64 || height < 64) return; _checkpoint(); final old = page.size; final sx = width / old.width, sy = height / old.height; page.size = CanvasSize(width, height); for (final e in elements) { e.x *= sx; e.y *= sy; e.width *= sx; e.height *= sy; } _changed(); }
+
+  /// Resizes the paper while preserving the design's proportions. A uniform
+  /// scale avoids stretching Urdu typography, images, shapes, and effects.
+  void resizeCanvas(double width, double height, {bool scaleContent = true}) {
+    if (width < 64 || height < 64) return;
+    final old = page.size;
+    if ((old.width - width).abs() < .1 && (old.height - height).abs() < .1) return;
+    _checkpoint();
+    final sx = width / old.width;
+    final sy = height / old.height;
+    final factor = math.min(sx, sy);
+    if (scaleContent) {
+      for (final e in elements) {
+        e.x *= factor;
+        e.y *= factor;
+        e.width = (e.width * factor).clamp(32, width).toDouble();
+        e.height = (e.height * factor).clamp(32, height).toDouble();
+        if (e.kind == ElementKind.text) e.fontSize = (e.fontSize * factor).clamp(5, 300).toDouble();
+        e.letterSpacing *= factor;
+        e.strokeWidth = (e.strokeWidth * factor).clamp(0, 40).toDouble();
+        e.radius = (e.radius * factor).clamp(0, 240).toDouble();
+        e.shadowBlur = (e.shadowBlur * factor).clamp(0, 80).toDouble();
+        e.shadowOffsetX *= factor;
+        e.shadowOffsetY *= factor;
+      }
+    }
+    page.size = CanvasSize(width, height);
+    _changed();
+  }
+
   void addPage() { _checkpoint(); project.pages.add(DesignPage(title: 'Page ${project.pages.length + 1}', size: page.size)); currentPageIndex = project.pages.length - 1; selectedId = null; _changed(); }
   void duplicatePage() { _checkpoint(); final copy = page.clone()..title = '${page.title} Copy'; project.pages.insert(currentPageIndex + 1, copy); currentPageIndex++; selectedId = null; _changed(); }
   void deletePage() { if (project.pages.length <= 1) return; _checkpoint(); project.pages.removeAt(currentPageIndex); currentPageIndex = currentPageIndex.clamp(0, project.pages.length - 1); selectedId = null; _changed(); }
