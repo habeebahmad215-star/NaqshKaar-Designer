@@ -17,7 +17,7 @@ old_generated = """      case ElementKind.shape:
 new_generated = """      case ElementKind.shape:
         if (e.catalogType == 'shape' || e.catalogType == 'border') {
           final stroke = e.strokeColor.a > 0 ? e.strokeColor : _purple;
-          final strokeWidth = e.strokeWidth > 0 ? e.strokeWidth : 3.0;
+          final double strokeWidth = e.strokeWidth > 0 ? e.strokeWidth : 3.0;
           final catalog = CustomPaint(
             size: Size(e.width, e.height),
             isComplex: true,
@@ -28,6 +28,7 @@ new_generated = """      case ElementKind.shape:
               stroke: stroke,
               strokeWidth: strokeWidth,
               border: e.catalogType == 'border',
+              radius: e.radius,
             ),
           );
           final base = e.catalogType == 'border'
@@ -42,15 +43,11 @@ new_generated = """      case ElementKind.shape:
           child = DecoratedBox(decoration: _decoration(e, isShape: true));
         }
         break;"""
-
 if old_generated in s:
     s = s.replace(old_generated, new_generated, 1)
-elif 'final catalog = CustomPaint(' not in s:
+elif 'radius: e.radius' not in s:
     raise SystemExit('Generated catalog shape block not found')
 
-# Replace the entire edge-handle function instead of attempting fragile
-# expression-level substitutions. This guarantees that no num-valued
-# math.min/math.max expression can survive into analyzer/build.
 edge_pattern = re.compile(
     r'  Widget _edgeHandle\(DesignElement e, String type, Alignment alignment\) \{.*?\n  \}\n\n  Widget _rotationHandle\(',
     re.DOTALL,
@@ -93,17 +90,16 @@ edge_replacement = '''  double _handleSpan(double extent, double minimum) {
   }
 
   Widget _rotationHandle('''
-
 s, count = edge_pattern.subn(edge_replacement, s, count=1)
 if count != 1:
     raise SystemExit(f'Expected exactly one edge-handle function, replaced {count}')
 
-# Final invariant checks. These fail the transformation before dart analyze if
-# any generator has reintroduced the known unsafe expressions.
 if re.search(r'math\.max\(touch\s*,\s*math\.min\(e\.(?:width|height)', s):
     raise SystemExit('Unsafe math.max/math.min selection-handle expression survived final normalization')
 if '_handleSpan(e.width, touch)' not in s or '_handleSpan(e.height, touch)' not in s:
     raise SystemExit('Final selection-handle double normalization is missing')
+if 'radius: e.radius' not in s:
+    raise SystemExit('Catalog radius was not wired into the painter')
 
 p.write_text(s, encoding='utf-8')
-print('Final runtime catalog visibility and deterministic canvas numeric type safety applied.')
+print('Final runtime catalog visibility, radius wiring, and deterministic canvas numeric type safety applied.')
