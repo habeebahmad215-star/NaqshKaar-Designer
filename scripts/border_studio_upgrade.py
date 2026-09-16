@@ -79,7 +79,6 @@ class _ReadyBorderPainter extends CustomPainter {
 
     final family = (s - 1) ~/ 10;
     final variant = (s - 1) % 10;
-    final inset = pad + variant * math.max(1.0, strokeWidth * .7);
     final r = rect.deflate(math.min(rect.width, rect.height) * (0.02 + variant * 0.008));
 
     if (family == 0) {
@@ -112,13 +111,12 @@ class _ReadyBorderPainter extends CustomPainter {
       _drawCornerOrnament(canvas, r, p, variant);
       if (variant >= 5) _drawCornerOrnament(canvas, r.deflate(7), p, variant - 5);
     } else if (family == 8) {
-      p.strokeWidth = strokeWidth * .7;
+      p.strokeWidth = strokeWidth * .72;
       _drawArabicGeometry(canvas, r, p, 12 + variant * 2.0, variant);
     } else {
       p.strokeWidth = strokeWidth * (0.62 + variant * .06);
       _drawRoyal(canvas, r, p, variant);
     }
-    // A subtle inset keyline makes every style usable on posters and certificates.
     if (variant == 8 || variant == 9) {
       final q = r.deflate(12 + variant);
       canvas.drawRRect(RRect.fromRectAndRadius(q, const Radius.circular(4)), p..strokeWidth = math.max(1.5, strokeWidth * .35));
@@ -290,8 +288,8 @@ patch_once(CANVAS, 'class _SelectionBorderPainter extends CustomPainter {', pain
 # Workspace: add a dedicated Border tool and a searchable, grouped 100-style gallery.
 patch_once(
     WORKSPACE,
-    "        _mainTool(Icons.image_outlined, 'Image', _pickImage),\n        _mainTool(Icons.layers_outlined, 'Pages', _pagesSheet),\n",
-    "        _mainTool(Icons.image_outlined, 'Image', _pickImage),\n        _mainTool(Icons.border_style_rounded, 'Borders', _borderSheet),\n        _mainTool(Icons.layers_outlined, 'Pages', _pagesSheet),\n",
+    "        _mainTool(Icons.image_outlined, 'Image', _pickImage),\n",
+    "        _mainTool(Icons.image_outlined, 'Image', _pickImage),\n        _mainTool(Icons.border_style_rounded, 'Borders', _borderSheet),\n",
     'main toolbar anchor',
 )
 
@@ -398,17 +396,17 @@ class _BorderPreviewPainter extends CustomPainter {
       for (var i=0;i<4+(v%4);i++) { final x=r.left+r.width*i/(3+(v%4)); canvas.drawLine(Offset(x,r.top),Offset(x+5,r.bottom),p); }
     } else {
       canvas.drawRRect(RRect.fromRectAndRadius(r, Radius.circular(v.isEven?8:2)), p);
-      canvas.drawRRect(RRect.fromRectAndRadius(r.deflate(7), Radius.circular(v.isEven?4:1)), p);
-      for(var i=0;i<8+v;i++){final t=i/(7+v); canvas.drawCircle(Offset(r.left+r.width*t,r.top),1.7,p);}
+      canvas.drawRRect(RRect.fromRectAndRadius(r.deflate(5), Radius.circular(v.isEven?4:1)), p);
     }
   }
-  void _dash(Canvas c,Rect r,Paint p,double d,double g){for(final e in [[Offset(r.left,r.top),Offset(r.right,r.top)],[Offset(r.right,r.top),Offset(r.right,r.bottom)],[Offset(r.right,r.bottom),Offset(r.left,r.bottom)],[Offset(r.left,r.bottom),Offset(r.left,r.top)]]){final a=e[0],b=e[1],len=(b-a).distance;for(var t=0.0;t<len;t+=d+g){final u=(t+d).clamp(0,len);c.drawLine(a+(b-a)*(t/len),a+(b-a)*(u/len),p);}}}
-  void _zig(Canvas c,Rect r,Paint p,double amp){final path=Path();for(final e in [[Offset(r.left,r.top),Offset(r.right,r.top)],[Offset(r.right,r.top),Offset(r.right,r.bottom)],[Offset(r.right,r.bottom),Offset(r.left,r.bottom)],[Offset(r.left,r.bottom),Offset(r.left,r.top)]]){final a=e[0],b=e[1],n=math.max(1,((b-a).distance/8).round()),v=(b-a)/n;for(var i=0;i<=n;i++){final o=a+v*i;final q=o+Offset(-v.dy,v.dx)*(i.isEven?amp:-amp)/math.max(1,v.distance);if(path.computeMetrics().isEmpty)path.moveTo(q.dx,q.dy);else path.lineTo(q.dx,q.dy);}}c.drawPath(path,p);}
-  void _scallop(Canvas c,Rect r,Paint p,double rad){c.drawRRect(RRect.fromRectAndRadius(r,Radius.circular(rad)),p);}
-  void _diamond(Canvas c,Rect r,Paint p,double step){for(final side in [0,1,2,3]){final len=side.isEven?r.width:r.height;final n=math.max(1,(len/step).round());for(var i=0;i<n;i++){final t=i/n,u=(i+1)/n;final a=side==0?Offset(r.left+r.width*t,r.top):side==1?Offset(r.right,r.top+r.height*t):side==2?Offset(r.right-r.width*t,r.bottom):Offset(r.left,r.bottom-r.height*t);final b=side==0?Offset(r.left+r.width*u,r.top):side==1?Offset(r.right,r.top+r.height*u):side==2?Offset(r.right-r.width*u,r.bottom):Offset(r.left,r.bottom-r.height*u);final m=(a+b)/2+Offset(-(b-a).dy,(b-a).dx)*.22; c.drawLine(a,m,p);c.drawLine(m,b,p);}}}
-  @override bool shouldRepaint(covariant _BorderPreviewPainter old)=>old.style!=style;
+  void _dash(Canvas c, Rect r, Paint p, double dash, double gap) { for (final side in [0,1,2,3]) { final len=side.isEven?r.width:r.height; for (var d=0.0;d<len;d+=dash+gap) { final e=math.min(len,d+dash); final a=side==0?Offset(r.left+d,r.top):side==1?Offset(r.right,r.top+d):side==2?Offset(r.right-d,r.bottom):Offset(r.left,r.bottom-d); final b=side==0?Offset(r.left+e,r.top):side==1?Offset(r.right,r.top+e):side==2?Offset(r.right-e,r.bottom):Offset(r.left,r.bottom-e); c.drawLine(a,b,p); } } }
+  void _zig(Canvas c, Rect r, Paint p, double step) { for (final side in [0,1,2,3]) { final len=side.isEven?r.width:r.height; final n=math.max(1,(len/step).round()); final v=(side.isEven?r.width:r.height)/n; final path=Path(); for(var i=0;i<=n;i++){final d=v*i; final o=side==0?Offset(r.left+d,r.top):side==1?Offset(r.right,r.top+d):side==2?Offset(r.right-d,r.bottom):Offset(r.left,r.bottom-d); if(i==0)path.moveTo(o.dx,o.dy);else path.lineTo(o.dx,o.dy);} c.drawPath(path,p);} }
+  void _scallop(Canvas c, Rect r, Paint p, double radius) { canvas.drawRRect(RRect.fromRectAndRadius(r, Radius.circular(radius)), p); }
+  void _diamond(Canvas c, Rect r, Paint p, double step) { canvas.drawRRect(RRect.fromRectAndRadius(r, Radius.circular(4)), p); for(var x=r.left;x<=r.right;x+=step){c.drawLine(Offset(x,r.top),Offset(math.min(r.right,x+step),r.bottom),p);} }
+  @override
+  bool shouldRepaint(covariant _BorderPreviewPainter old) => old.style != style;
 }
 '''
-patch_once(WORKSPACE, 'class _SheetHeader extends StatelessWidget {', preview + '\nclass _SheetHeader extends StatelessWidget {', 'preview painter insertion')
+patch_once(CANVAS, 'class _SelectionBorderPainter extends CustomPainter {', preview + '\nclass _SelectionBorderPainter extends CustomPainter {', 'preview painter insertion')
 
-print('100-border studio applied')
+print('Border Studio patch applied successfully')
