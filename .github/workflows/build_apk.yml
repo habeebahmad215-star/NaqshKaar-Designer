@@ -107,7 +107,8 @@ jobs:
         run: python3 scripts/reference_composer_polish.py
 
       - name: Ignore obsolete legacy chrome helper warnings
-        run: sed -i '1i// ignore_for_file: unused_element' lib/screens/workspace_screen.dart
+        run: |
+          sed -i '1i// ignore_for_file: unused_element' lib/screens/workspace_screen.dart
 
       - name: Disable only the non-build-blocking curly-braces lint
         run: |
