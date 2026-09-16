@@ -134,6 +134,9 @@ jobs:
               path.write_text(text, encoding='utf-8')
           PY
 
+      - name: Apply safe Dart analyzer fixes
+        run: dart fix --apply
+
       - name: Format generated Dart sources
         run: dart format lib
 
