@@ -1,8 +1,9 @@
 from pathlib import Path
-import re
 
 p = Path('lib/widgets/premium_catalogs.dart')
 s = p.read_text(encoding='utf-8')
+
+# Replace the complete border method using stable class-method anchors.
 start = s.find('  void _drawBorder(')
 end = s.find('  void _dashed(', start)
 if start < 0 or end < 0:
@@ -38,27 +39,16 @@ method = '''  void _drawBorder(Canvas c, Rect r, Paint p, int t) {
         break;
       case 7:
         _dashed(c, q, p, 12, 5);
-        for (final o in [
-          Offset(q.left, q.top),
-          Offset(q.right, q.top),
-          Offset(q.left, q.bottom),
-          Offset(q.right, q.bottom),
-        ]) {
+        for (final o in [Offset(q.left, q.top), Offset(q.right, q.top), Offset(q.left, q.bottom), Offset(q.right, q.bottom)]) {
           c.drawCircle(o, p.strokeWidth * 1.25, p);
         }
         break;
       case 8:
-        final b = Paint()
-          ..color = p.color
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = p.strokeWidth * 1.8;
+        final b = Paint()..color = p.color..style = PaintingStyle.stroke..strokeWidth = p.strokeWidth * 1.8;
         c.drawRect(q, b);
         break;
       case 9:
-        final b = Paint()
-          ..color = p.color.withValues(alpha: .55)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = p.strokeWidth * 1.5;
+        final b = Paint()..color = p.color.withValues(alpha: .55)..style = PaintingStyle.stroke..strokeWidth = p.strokeWidth * 1.5;
         c.drawRRect(RRect.fromRectAndRadius(q, const Radius.circular(20)), b);
         break;
       case 10:
@@ -70,12 +60,7 @@ method = '''  void _drawBorder(Canvas c, Rect r, Paint p, int t) {
     }
     if (t >= 12) {
       final corner = math.min(q.width, q.height) * .045;
-      for (final o in [
-        Offset(q.left, q.top),
-        Offset(q.right, q.top),
-        Offset(q.left, q.bottom),
-        Offset(q.right, q.bottom),
-      ]) {
+      for (final o in [Offset(q.left, q.top), Offset(q.right, q.top), Offset(q.left, q.bottom), Offset(q.right, q.bottom)]) {
         c.drawCircle(o, corner, p);
       }
     }
@@ -84,19 +69,53 @@ method = '''  void _drawBorder(Canvas c, Rect r, Paint p, int t) {
 '''
 s = s[:start] + method + s[end:]
 
-# Normalize painter repaint declarations: remove every generated declaration,
-# then add exactly one immediately before the painter's paint method.
-s = re.sub(
-    r'\s*@override\s*bool\s+shouldRepaint\(covariant\s+CatalogShapePainter\s+oldDelegate\)\s*=>[^;]*;\s*',
-    '\n',
-    s,
-)
-marker = '  @override void paint(Canvas canvas, Size size) {'
-idx = s.find(marker)
-if idx < 0:
+# Normalize CatalogShapePainter: remove every existing shouldRepaint method
+# (including block-form and expression-form declarations), then add exactly one.
+cls = s.find('class CatalogShapePainter')
+if cls < 0:
+    raise SystemExit('CatalogShapePainter class not found')
+next_cls = s.find('\nclass ', cls + 1)
+cls_end = next_cls if next_cls >= 0 else len(s)
+segment = s[cls:cls_end]
+
+while True:
+    pos = segment.find('shouldRepaint(')
+    if pos < 0:
+        break
+    decl_start = segment.rfind('@override', 0, pos)
+    if decl_start < 0:
+        decl_start = segment.rfind('\n', 0, pos) + 1
+    arrow = segment.find('=>', pos)
+    brace = segment.find('{', pos)
+    if arrow >= 0 and (brace < 0 or arrow < brace):
+        semi = segment.find(';', arrow)
+        if semi < 0:
+            raise SystemExit('Could not terminate shouldRepaint expression')
+        decl_end = semi + 1
+    elif brace >= 0:
+        depth = 0
+        decl_end = None
+        for i in range(brace, len(segment)):
+            if segment[i] == '{':
+                depth += 1
+            elif segment[i] == '}':
+                depth -= 1
+                if depth == 0:
+                    decl_end = i + 1
+                    break
+        if decl_end is None:
+            raise SystemExit('Could not terminate shouldRepaint block')
+    else:
+        raise SystemExit('Could not locate shouldRepaint body')
+    segment = segment[:decl_start] + segment[decl_end:]
+
+paint_marker = '  @override void paint(Canvas canvas, Size size) {'
+paint_pos = segment.find(paint_marker)
+if paint_pos < 0:
     raise SystemExit('CatalogShapePainter paint method not found')
 repaint = '  @override bool shouldRepaint(covariant CatalogShapePainter oldDelegate) => oldDelegate.type != type || oldDelegate.fill != fill || oldDelegate.stroke != stroke || oldDelegate.strokeWidth != strokeWidth || oldDelegate.border != border;\n'
-s = s[:idx] + repaint + s[idx:]
+segment = segment[:paint_pos] + repaint + segment[paint_pos:]
+s = s[:cls] + segment + s[cls_end:]
 
 p.write_text(s, encoding='utf-8')
 print('Final catalog border renderer and repaint safety repaired.')
