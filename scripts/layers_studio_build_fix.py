@@ -2,14 +2,14 @@ from pathlib import Path
 import re
 
 # Canvas interaction's broad move-method replacement can consume methods that
-# sit between moveSelectedBy and the resize doc comment. Re-install the layer
-# reorder API after all controller transforms so the generated build always
-# has the API used by Layers Studio.
+# sit between moveSelectedBy and the resize method. Re-install the layer
+# reorder API after controller transforms so the generated build always has
+# the API used by Layers Studio.
 controller_path = Path('lib/state/workspace_controller.dart')
 controller = controller_path.read_text()
 
 if 'void reorderSelectedToIndex(int targetIndex)' not in controller:
-    marker = '  /// Resizes in the element\'s local coordinate system.'
+    marker = '  void resizeSelectedFromHandle(String handle, double dx, double dy) {'
     method = '''  /// Moves the selected layer to a concrete stack index. The index uses the
   /// same bottom-to-top ordering as page.elements and is undoable as one action.
   void reorderSelectedToIndex(int targetIndex) {
@@ -28,7 +28,7 @@ if 'void reorderSelectedToIndex(int targetIndex)' not in controller:
 
 '''
     if marker not in controller:
-        raise SystemExit('controller resize marker not found')
+        raise SystemExit('controller resize method marker not found')
     controller = controller.replace(marker, method + marker, 1)
 
 # Layer reordering now uses the modern ReorderableListView callback. Unlike
