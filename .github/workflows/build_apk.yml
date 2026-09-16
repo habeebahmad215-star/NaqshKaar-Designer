@@ -127,6 +127,9 @@ jobs:
       - name: Deep screenshot-driven UX polish
         run: python3 scripts/deep_screenshot_polish.py
 
+      - name: Deep functional repair and responsive UX pass
+        run: python3 scripts/deep_functional_repair.py
+
       - name: Disable only the non-build-blocking curly-braces lint
         run: |
           python3 - <<'PY'
