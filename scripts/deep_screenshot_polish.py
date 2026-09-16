@@ -60,7 +60,7 @@ if old in s and '_catalogVariant(Canvas c' not in s:
       case 2: _star(c,o,_min(w,h)*.46,9,p); break;
       case 3: _poly(c,o,_min(w,h)*.46,10,math.pi/10,p); break;
       case 4: _poly(c,o,_min(w,h)*.46,12,math.pi/12,p); break;
-      case 5: _gear(c,o,_min(w,h)*.34,12,_min(w,h)*.12,p); break;
+      case 5: _gear(c,o,_min(w,h)*.34,_min(w,h)*.12,12,p); break;
       case 6: _target(c,o,_min(w,h)*.42,p); break;
       case 7: _ribbon(c,r,p); break;
       case 8: _shield(c,r,p); break;
