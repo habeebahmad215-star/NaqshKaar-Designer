@@ -100,6 +100,9 @@ jobs:
       - name: Apply premium non-blocking live-preview controls
         run: python3 scripts/premium_workspace_ui_upgrade.py
 
+      - name: Correct premium workspace UI transformation
+        run: python3 scripts/fix_premium_workspace_ui.py
+
       - name: Analyze
         run: flutter analyze
 
