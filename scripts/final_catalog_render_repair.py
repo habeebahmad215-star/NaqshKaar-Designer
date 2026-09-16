@@ -82,5 +82,25 @@ method = '''  void _drawBorder(Canvas c, Rect r, Paint p, int t) {
 
 '''
 s = s[:start] + method + s[end:]
+
+# Keep exactly one repaint implementation even if an earlier catalog pass already added it.
+lines = s.splitlines(keepends=True)
+seen = False
+out = []
+for line in lines:
+    if 'bool shouldRepaint(covariant CatalogShapePainter oldDelegate)' in line:
+        if seen:
+            continue
+        seen = True
+    out.append(line)
+s = ''.join(out)
+if not seen:
+    marker = '  @override void paint(Canvas canvas, Size size) {'
+    idx = s.find(marker)
+    if idx < 0:
+        raise SystemExit('CatalogShapePainter paint method not found')
+    repaint = '  @override bool shouldRepaint(covariant CatalogShapePainter oldDelegate) => oldDelegate.type != type || oldDelegate.fill != fill || oldDelegate.stroke != stroke || oldDelegate.strokeWidth != strokeWidth || oldDelegate.border != border;\n'
+    s = s[:idx] + repaint + s[idx:]
+
 p.write_text(s, encoding='utf-8')
-print('Final catalog border renderer repaired.')
+print('Final catalog border renderer and repaint safety repaired.')
