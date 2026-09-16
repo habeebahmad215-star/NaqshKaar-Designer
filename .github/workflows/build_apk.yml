@@ -103,6 +103,9 @@ jobs:
       - name: Apply reference-style Add New panel
         run: python3 scripts/reference_add_new_panel.py
 
+      - name: Apply real Add New tool actions
+        run: python3 scripts/real_add_new_tools_upgrade.py
+
       - name: Ignore obsolete legacy chrome helper warnings
         run: |
           sed -i '1i// ignore_for_file: unused_element' lib/screens/workspace_screen.dart
