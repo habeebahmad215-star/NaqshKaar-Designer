@@ -136,6 +136,9 @@ jobs:
       - name: Final catalog renderer safety repair
         run: python3 scripts/final_catalog_render_repair.py
 
+      - name: Final runtime catalog visibility repair
+        run: python3 scripts/final_runtime_catalog_visibility_repair.py
+
       - name: Disable only the non-build-blocking curly-braces lint
         run: |
           python3 - <<'PY'
