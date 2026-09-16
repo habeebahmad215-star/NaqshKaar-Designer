@@ -94,6 +94,9 @@ jobs:
       - name: Apply export memory safety
         run: python3 scripts/export_safety_upgrade.py
 
+      - name: Apply remaining Studio tool hub
+        run: python3 scripts/remaining_tools_upgrade.py
+
       - name: Analyze
         run: flutter analyze
 
