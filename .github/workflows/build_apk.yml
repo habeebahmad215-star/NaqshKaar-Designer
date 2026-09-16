@@ -10,7 +10,6 @@ jobs:
   build:
     name: Build Android
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -103,8 +102,8 @@ jobs:
         run: python3 scripts/final_catalog_render_repair.py
       - name: Final runtime catalog visibility repair
         run: python3 scripts/final_runtime_catalog_visibility_repair.py
-      - name: Final editor UX repair
-        run: python3 scripts/final_editor_ux_repair.py
+      - name: Deterministic final editor UX repair
+        run: python3 scripts/final_editor_ux_repair_v2.py
       - name: Final editor UX safety gate
         run: python3 scripts/final_editor_ux_safety.py
       - name: Disable only the non-build-blocking curly-braces lint
