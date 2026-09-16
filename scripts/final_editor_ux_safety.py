@@ -10,6 +10,9 @@ if 'Future<void> _layersSheet() async' not in s:
     if marker not in s:
         raise SystemExit('Workspace view-button anchor not found')
     s = s.replace(marker, method + marker, 1)
+
+# The font is applied at tile tap time; no result variable is needed.
+s = s.replace('final family = await showModalBottomSheet<String>(', 'await showModalBottomSheet<String>(', 1)
 p.write_text(s, encoding='utf-8')
 
 p = Path('lib/widgets/layers_panel.dart')
@@ -30,7 +33,6 @@ if 'PremiumShapeCatalog.borderNames[index]' not in s:
     else:
         raise SystemExit('Layers shape-title anchor not found')
 
-# Make the shape/border dimensions explicit in the subtitle as well.
 compact_sub = "case ElementKind.shape:\n      case ElementKind.image: return '${element.width.round()} × ${element.height.round()}';"
 if compact_sub in s:
     s = s.replace(compact_sub, "case ElementKind.shape: { final kind = element.catalogType == 'border' ? 'Border' : 'Shape'; return '$kind • ${element.width.round()} × ${element.height.round()}'; }\n      case ElementKind.image: return '${element.width.round()} × ${element.height.round()}';", 1)
