@@ -17,7 +17,7 @@ class _DesignCanvasState extends State<DesignCanvas> {
   double? _rotationStartAngle;
   double? _rotationStartValue;
   WorkspaceController get controller => widget.controller;
-  double get scale => widget.interactionScale.clamp(.05, 10);
+  double get scale => widget.interactionScale.clamp(.05, 10).toDouble();
   static const _purple = Color(0xFF6D28D9);
   static const _handleWhite = Colors.white;
   static const _touch = 44.0;
@@ -98,25 +98,22 @@ class _DesignCanvasState extends State<DesignCanvas> {
         child = Container(
           decoration: _decoration(e, isShape: false),
           alignment: Alignment.center,
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.center,
-            child: SizedBox(
-              width: e.width,
-              child: Text(
-                e.text.isEmpty ? 'Text' : e.text,
-                textAlign: e.textAlign,
-                textDirection: e.textDirection,
-                style: TextStyle(
-                  fontFamily: e.fontFamily,
-                  fontSize: e.fontSize,
-                  color: e.color,
-                  fontWeight: e.bold ? FontWeight.bold : FontWeight.normal,
-                  fontStyle: e.italic ? FontStyle.italic : FontStyle.normal,
-                  height: e.lineHeight,
-                  letterSpacing: e.letterSpacing,
-                  shadows: _shadows(e).map((s) => Shadow(color: s.color, blurRadius: s.blurRadius, offset: s.offset)).toList(),
-                ),
+          child: SizedBox(
+            width: e.width,
+            height: e.height,
+            child: Text(
+              e.text.isEmpty ? 'Text' : e.text,
+              textAlign: e.textAlign,
+              textDirection: e.textDirection,
+              style: TextStyle(
+                fontFamily: e.fontFamily,
+                fontSize: e.fontSize,
+                color: e.color,
+                fontWeight: e.bold ? FontWeight.bold : FontWeight.normal,
+                fontStyle: e.italic ? FontStyle.italic : FontStyle.normal,
+                height: e.lineHeight,
+                letterSpacing: e.letterSpacing,
+                shadows: _shadows(e).map((s) => Shadow(color: s.color, blurRadius: s.blurRadius, offset: s.offset)).toList(),
               ),
             ),
           ),
@@ -187,8 +184,8 @@ class _DesignCanvasState extends State<DesignCanvas> {
   }
 
   Widget _cornerHandle(DesignElement e, String type, Alignment alignment) {
-    final touch = _touch / scale;
-    final visual = _cornerVisual / scale;
+    final touch = (_touch / scale).toDouble();
+    final visual = (_cornerVisual / scale).toDouble();
     return Align(
       alignment: alignment,
       child: GestureDetector(
@@ -216,8 +213,8 @@ class _DesignCanvasState extends State<DesignCanvas> {
   }
 
   Widget _edgeHandle(DesignElement e, String type, Alignment alignment) {
-    final touch = _touch / scale;
-    final visual = _edgeVisual / scale;
+    final touch = (_touch / scale).toDouble();
+    final visual = (_edgeVisual / scale).toDouble();
     final horizontal = alignment == Alignment.topCenter || alignment == Alignment.bottomCenter;
     return Align(
       alignment: alignment,
@@ -227,8 +224,8 @@ class _DesignCanvasState extends State<DesignCanvas> {
         onPanUpdate: (d) => controller.resizeSelectedFromHandle(type, d.delta.dx / scale, d.delta.dy / scale),
         onPanEnd: (_) => controller.finishContinuousEdit(),
         child: SizedBox(
-          width: horizontal ? math.max(touch, math.min(e.width, 180.0)) : touch,
-          height: horizontal ? touch : math.max(touch, math.min(e.height, 180.0)),
+          width: horizontal ? math.max(touch, math.min(e.width, 180.0)).toDouble() : touch,
+          height: horizontal ? touch : math.max(touch, math.min(e.height, 180.0)).toDouble(),
           child: Center(
             child: Container(
               width: horizontal ? 30 / scale : visual,
@@ -246,7 +243,7 @@ class _DesignCanvasState extends State<DesignCanvas> {
   }
 
   Widget _rotationHandle(DesignElement e) {
-    final touch = _touch / scale;
+    final touch = (_touch / scale).toDouble();
     final visual = 18.0 / scale;
     final stemHeight = 18.0 / scale;
     return Positioned(
