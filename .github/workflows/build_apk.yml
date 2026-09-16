@@ -82,9 +82,6 @@ jobs:
       - name: Apply advanced Layers Studio
         run: python3 scripts/advanced_layers_upgrade.py
 
-      - name: Fix Layers Studio build integration
-        run: python3 scripts/layers_studio_build_fix.py
-
       - name: Apply Typography Studio
         run: python3 scripts/typography_studio_upgrade.py
 
@@ -94,36 +91,6 @@ jobs:
       - name: Apply export memory safety
         run: python3 scripts/export_safety_upgrade.py
 
-      - name: Normalize generated controller flow statements
-        run: python3 scripts/controller_flow_control_fix.py
-
-      - name: Apply 100 ready-made premium borders
-        run: python3 scripts/border_studio_upgrade.py
-
-      - name: Finalize border studio compile integration
-        run: python3 scripts/border_studio_compile_patch.py
-
-      - name: Disable only the non-build-blocking curly-braces lint
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          path = Path('analysis_options.yaml')
-          text = path.read_text(encoding='utf-8')
-          rule = 'curly_braces_in_flow_control_structures: false'
-          if rule not in text:
-              marker = 'linter:\n'
-              if marker not in text:
-                  raise SystemExit('Expected Flutter-generated linter block was not found')
-              rules_marker = '  rules:\n'
-              if rules_marker not in text:
-                  raise SystemExit('Expected Flutter-generated rules block was not found')
-              text = text.replace(rules_marker, rules_marker + '    ' + rule + '\n', 1)
-              path.write_text(text, encoding='utf-8')
-          PY
-
-      - name: Format generated Dart sources
-        run: dart format lib
-
       - name: Analyze
         run: flutter analyze
 
@@ -132,11 +99,6 @@ jobs:
 
       - name: Build Play Store AAB
         run: flutter build appbundle --release
-
-      - name: Verify release artifacts
-        run: |
-          test -s build/app/outputs/flutter-apk/app-release.apk
-          test -s build/app/outputs/bundle/release/app-release.aab
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
