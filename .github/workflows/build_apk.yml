@@ -103,6 +103,9 @@ jobs:
       - name: Correct premium workspace UI transformation
         run: python3 scripts/fix_premium_workspace_ui.py
 
+      - name: Correct live canvas size panel
+        run: python3 scripts/fix_premium_canvas_size.py
+
       - name: Analyze
         run: flutter analyze
 
