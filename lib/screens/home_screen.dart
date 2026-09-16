@@ -107,7 +107,7 @@ class _HomeScreenState extends State<HomeScreen> {
     IconButton(onPressed: _showSettings, icon: const Icon(Icons.settings_outlined, size: 25)),
   ]);
 
-  Widget _createCard() => Material(color: Colors.transparent, child: InkWell(borderRadius: BorderRadius.circular(26), onTap: () => _create(const CanvasSize(1080, 1080)), child: Ink(padding: const EdgeInsets.all(22), decoration: BoxDecoration(borderRadius: BorderRadius.circular(26), gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF7C3AED), Color(0xFF5B21B6)]), boxShadow: const [BoxShadow(blurRadius: 24, offset: Offset(0, 12), color: Color(0x447C3AED))]), child: Row(children: [Container(width: 58, height: 58, decoration: BoxDecoration(color: Colors.white.withValues(alpha: .16), borderRadius: BorderRadius.circular(18)), child: const Icon(Icons.add_rounded, color: Colors.white, size: 34)), const SizedBox(width: 16), const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Create New Design', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)), SizedBox(height: 4), Text('Start with a professional blank canvas', style: TextStyle(color: Colors.white70, fontSize: 13))])), const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 18)]))));
+  Widget _createCard() => Material(color: Colors.transparent, child: InkWell(borderRadius: BorderRadius.circular(28), onTap: () => _create(const CanvasSize(1080, 1080)), child: Ink(padding: const EdgeInsets.all(22), decoration: BoxDecoration(borderRadius: BorderRadius.circular(28), gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF8B5CF6), Color(0xFF6366F1), Color(0xFF4F46E5)]), boxShadow: const [BoxShadow(blurRadius: 30, spreadRadius: 1, offset: Offset(0, 14), color: Color(0x4D5B21B6)), BoxShadow(blurRadius: 8, offset: Offset(0, 3), color: Color(0x337C3AED))]), child: Row(children: [Container(width: 62, height: 62, decoration: BoxDecoration(shape: BoxShape.circle, gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFFFFFFFF), Color(0xFFE9D5FF)]), boxShadow: const [BoxShadow(blurRadius: 14, offset: Offset(0, 6), color: Color(0x557C3AED))]), child: const Center(child: Icon(Icons.add_rounded, color: Color(0xFF5B21B6), size: 38))), const SizedBox(width: 16), const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Create New Design', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)), SizedBox(height: 4), Text('Start with a professional blank canvas', style: TextStyle(color: Colors.white70, fontSize: 13))])), const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 18)]))));
 
   Widget _quickCard(IconData icon, String title, String subtitle, CanvasSize size, {bool custom = false}) => Material(color: Colors.white, borderRadius: BorderRadius.circular(22), child: InkWell(borderRadius: BorderRadius.circular(22), onTap: custom ? _customSize : () => _create(size), child: Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(borderRadius: BorderRadius.circular(22), border: Border.all(color: const Color(0xFFE5E7EB))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Container(width: 46, height: 46, decoration: BoxDecoration(color: const Color(0xFFF3E8FF), borderRadius: BorderRadius.circular(14)), child: Icon(icon, color: const Color(0xFF7C3AED), size: 25)), const Spacer(), Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)), const SizedBox(height: 4), Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.black54))]))));
 
@@ -125,35 +125,9 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.all(14),
             child: Row(
               children: [
-                Container(
-                  width: 56,
-                  height: 76,
-                  decoration: BoxDecoration(
-                    color: project.pages.first.background,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.black12),
-                  ),
-                  child: Center(
-                    child: Text(
-                      '${project.pages.length}',
-                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20),
-                    ),
-                  ),
-                ),
+                Container(width: 56, height: 76, decoration: BoxDecoration(color: project.pages.first.background, borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.black12)), child: Center(child: Text('${project.pages.length}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20)))),
                 const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(project.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800)),
-                      const SizedBox(height: 5),
-                      Text('${project.pages.length} page${project.pages.length == 1 ? '' : 's'}', style: const TextStyle(fontSize: 12, color: Colors.black54)),
-                      const SizedBox(height: 7),
-                      const Text('Tap to continue • Hold to delete', style: TextStyle(fontSize: 10, color: Colors.black45)),
-                    ],
-                  ),
-                ),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [Text(project.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800)), const SizedBox(height: 5), Text('${project.pages.length} page${project.pages.length == 1 ? '' : 's'}', style: const TextStyle(fontSize: 12, color: Colors.black54)), const SizedBox(height: 7), const Text('Tap to continue • Hold to delete', style: TextStyle(fontSize: 10, color: Colors.black45))]))
               ],
             ),
           ),
@@ -168,54 +142,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showAllProjects() {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (c) => SafeArea(
-        child: SizedBox(
-          height: MediaQuery.sizeOf(c).height * .72,
-          child: Column(
-            children: [
-              const Padding(
-                padding: EdgeInsets.all(16),
-                child: Text('Project Library', style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900)),
-              ),
-              Expanded(
-                child: _projects.isEmpty
-                    ? const Center(child: Text('No saved projects yet.'))
-                    : ListView.separated(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _projects.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 8),
-                        itemBuilder: (_, i) {
-                          final p = _projects[i];
-                          return ListTile(
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                            tileColor: const Color(0xFFF8F7FC),
-                            leading: CircleAvatar(
-                              backgroundColor: const Color(0xFFEDE9FE),
-                              child: Text('${p.pages.length}'),
-                            ),
-                            title: Text(p.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800)),
-                            subtitle: const Text('Tap to continue editing'),
-                            onTap: () {
-                              Navigator.pop(c);
-                              _openProject(p);
-                            },
-                            trailing: IconButton(
-                              onPressed: () => _confirmDelete(p),
-                              icon: const Icon(Icons.delete_outline),
-                            ),
-                          );
-                        },
-                      ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+    showModalBottomSheet<void>(context: context, isScrollControlled: true, showDragHandle: true, builder: (c) => SafeArea(child: SizedBox(height: MediaQuery.sizeOf(c).height * .72, child: Column(children: [const Padding(padding: EdgeInsets.all(16), child: Text('Project Library', style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900))), Expanded(child: _projects.isEmpty ? const Center(child: Text('No saved projects yet.')) : ListView.separated(padding: const EdgeInsets.all(16), itemCount: _projects.length, separatorBuilder: (_, __) => const SizedBox(height: 8), itemBuilder: (_, i) { final p = _projects[i]; return ListTile(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), tileColor: const Color(0xFFF8F7FC), leading: CircleAvatar(backgroundColor: const Color(0xFFEDE9FE), child: Text('${p.pages.length}')), title: Text(p.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800)), subtitle: const Text('Tap to continue editing'), onTap: () { Navigator.pop(c); _openProject(p); }, trailing: IconButton(onPressed: () => _confirmDelete(p), icon: const Icon(Icons.delete_outline))); }))])));
   }
 
   void _showSettings() {
