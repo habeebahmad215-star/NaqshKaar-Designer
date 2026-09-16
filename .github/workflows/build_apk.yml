@@ -106,6 +106,9 @@ jobs:
       - name: Apply real Add New tool actions
         run: python3 scripts/real_add_new_tools_upgrade.py
 
+      - name: Apply final real-tools polish
+        run: python3 scripts/final_real_tools_patch.py
+
       - name: Ignore obsolete legacy chrome helper warnings
         run: |
           sed -i '1i// ignore_for_file: unused_element' lib/screens/workspace_screen.dart
