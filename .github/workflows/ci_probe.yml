@@ -1,0 +1,13 @@
+name: CI Probe
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "CI workflow parser and runner probe OK"
