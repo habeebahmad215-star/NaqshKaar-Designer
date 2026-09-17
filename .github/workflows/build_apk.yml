@@ -107,7 +107,7 @@ jobs:
       - name: Deterministic final editor UX repair
         run: python3 scripts/final_editor_ux_repair_v2.py
       - name: Final live preview and selection UX repair
-        run: python3 scripts/final_live_preview_and_selection.py
+        run: python3 scripts/final_live_preview_and_selection_recovery.py
       - name: Final editor UX safety gate
         run: python3 scripts/final_editor_ux_safety.py
       - name: Disable only the non-build-blocking curly-braces lint
