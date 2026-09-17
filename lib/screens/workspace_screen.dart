@@ -491,7 +491,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                     Text(title, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
                     const SizedBox(height: 8),
                     Text(display(value), style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: _primary)),
-                    Slider(min: min, max: max, divisions: divisions, value: value, onChanged: (newValue) => setSheetState(() => value = newValue)),
+                    Slider(min: min, max: max, divisions: divisions, value: value, onChanged: (newValue) { controller.startContinuousEdit(); setSheetState(() => value = newValue); apply(newValue); }, onChangeEnd: (_) => controller.finishContinuousEdit()),
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton.icon(
@@ -603,7 +603,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('$label  ${value.toStringAsFixed(1)}', style: const TextStyle(fontWeight: FontWeight.w700)),
-        Slider(min: min, max: max, value: value, onChanged: onChanged),
+        Slider(min: min, max: max, value: value, onChanged: onChanged, onChangeEnd: (_) => controller.finishContinuousEdit()),
       ],
     );
   }
