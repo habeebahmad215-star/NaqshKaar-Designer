@@ -24,11 +24,18 @@ if 'void startContinuousEdit()' not in s:
     method = '''  void startContinuousEdit() {\n    if (_continuousCheckpointActive) return;\n    final e = selected;\n    if (e == null || e.locked) return;\n    _checkpoint();\n    _continuousCheckpointActive = true;\n  }\n\n  void finishContinuousEdit() {\n    _continuousCheckpointActive = false;\n    notifyListeners();\n  }\n\n'''
     s = s[:i] + method + s[i:]
 
-# Avoid a history entry for every slider tick.
-s = s.replace(
-    'if (e == null || e.locked) return; _checkpoint();',
-    'if (e == null || e.locked) return; if (!_continuousCheckpointActive) _checkpoint();',
-)
+# Avoid a history entry for every continuous-control tick. Keep discrete
+# actions unchanged, and make the guard idempotent if an earlier pass already
+# touched the controller.
+for _old, _new in [
+    ('if (e == null || e.locked) return; _checkpoint();',
+     'if (e == null || e.locked) return; if (!_continuousCheckpointActive) _checkpoint();'),
+    ('if (e == null || e.kind != ElementKind.shape || e.locked) return; _checkpoint();',
+     'if (e == null || e.kind != ElementKind.shape || e.locked) return; if (!_continuousCheckpointActive) _checkpoint();'),
+    ('if (e == null || e.kind != ElementKind.text || e.locked) return; _checkpoint();',
+     'if (e == null || e.kind != ElementKind.text || e.locked) return; if (!_continuousCheckpointActive) _checkpoint();'),
+]:
+    s = s.replace(_old, _new)
 for method_name in [
     'setSelectedOpacity', 'setSelectedRadius', 'setSelectedStroke',
     'setSelectedShadow', 'setSelectedTypography', 'setSelectedFontSize',
@@ -44,6 +51,46 @@ p.write_text(s, encoding='utf-8')
 
 # ---------------------------------------------------------------------------
 # Workspace UI: live slider preview, Deselect, and top-bar Layers.
+# Ensure every continuous-edit session can end at the actual slider release.
+# This is deliberately done on the final generated source, after all earlier
+# workspace generators, so it cannot be lost to a preceding transform.
+ws_live = Path('lib/screens/workspace_screen.dart')
+ws = ws_live.read_text(encoding='utf-8')
+ws = ws.replace(
+    'Slider(min: min, max: max, divisions: divisions, value: value, onChanged: (newValue) => setSheetState(() => value = newValue))',
+    'Slider(min: min, max: max, divisions: divisions, value: value, onChanged: (newValue) { controller.startContinuousEdit(); setSheetState(() => value = newValue); apply(newValue); }, onChangeEnd: (_) => controller.finishContinuousEdit())',
+)
+ws = ws.replace(
+    'Slider(min: min, max: max, value: value, onChanged: onChanged)',
+    'Slider(min: min, max: max, value: value, onChanged: onChanged, onChangeEnd: (_) => controller.finishContinuousEdit())',
+)
+# Effect/spacing callbacks are live model updates; finish at release.
+ws = ws.replace(
+    "_effectSlider('Stroke', strokeWidth, 0, 40, (v) => setSheetState(() => strokeWidth = v))",
+    "_effectSlider('Stroke', strokeWidth, 0, 40, (v) { controller.startContinuousEdit(); setSheetState(() => strokeWidth = v); controller.setSelectedStroke(width: v, colorValue: element.strokeColorValue == 0 ? Colors.black.toARGB32() : element.strokeColorValue); })",
+)
+ws = ws.replace(
+    "_effectSlider('Shadow Blur', shadowBlur, 0, 80, (v) => setSheetState(() => shadowBlur = v))",
+    "_effectSlider('Shadow Blur', shadowBlur, 0, 80, (v) { controller.startContinuousEdit(); setSheetState(() => shadowBlur = v); controller.setSelectedShadow(blur: v, offsetX: shadowX, offsetY: shadowY, colorValue: element.shadowColorValue == 0 ? Colors.black54.toARGB32() : element.shadowColorValue); })",
+)
+ws = ws.replace(
+    "_effectSlider('Shadow X', shadowX, -100, 100, (v) => setSheetState(() => shadowX = v))",
+    "_effectSlider('Shadow X', shadowX, -100, 100, (v) { controller.startContinuousEdit(); setSheetState(() => shadowX = v); controller.setSelectedShadow(blur: shadowBlur, offsetX: v, offsetY: shadowY, colorValue: element.shadowColorValue == 0 ? Colors.black54.toARGB32() : element.shadowColorValue); })",
+)
+ws = ws.replace(
+    "_effectSlider('Shadow Y', shadowY, -100, 100, (v) => setSheetState(() => shadowY = v))",
+    "_effectSlider('Shadow Y', shadowY, -100, 100, (v) { controller.startContinuousEdit(); setSheetState(() => shadowY = v); controller.setSelectedShadow(blur: shadowBlur, offsetX: shadowX, offsetY: v, colorValue: element.shadowColorValue == 0 ? Colors.black54.toARGB32() : element.shadowColorValue); })",
+)
+ws = ws.replace(
+    "_effectSlider('Letter Spacing', letterSpacing, -10, 20, (v) => setSheetState(() => letterSpacing = v))",
+    "_effectSlider('Letter Spacing', letterSpacing, -10, 20, (v) { controller.startContinuousEdit(); setSheetState(() => letterSpacing = v); controller.setSelectedTypography(letterSpacing: v, lineHeight: lineHeight); })",
+)
+ws = ws.replace(
+    "_effectSlider('Line Height', lineHeight, 0.7, 3, (v) => setSheetState(() => lineHeight = v))",
+    "_effectSlider('Line Height', lineHeight, 0.7, 3, (v) { controller.startContinuousEdit(); setSheetState(() => lineHeight = v); controller.setSelectedTypography(letterSpacing: letterSpacing, lineHeight: v); })",
+)
+ws_live.write_text(ws, encoding='utf-8')
+
 # ---------------------------------------------------------------------------
 p = Path('lib/screens/workspace_screen.dart')
 s = p.read_text(encoding='utf-8')
