@@ -111,6 +111,17 @@ s = s[:start] + seg + s[end:]
 p.write_text(s, encoding='utf-8')
 
 # ---------------------------------------------------------------------------
+# Step 2A: Effects and typography spacing update the real model on every tick.
+# ---------------------------------------------------------------------------
+ws_live = Path('lib/screens/workspace_screen.dart')
+live = ws_live.read_text(encoding='utf-8')
+repls = [["_effectSlider('Stroke', strokeWidth, 0, 40, (v) => setSheetState(() => strokeWidth = v))","_effectSlider('Stroke', strokeWidth, 0, 40, (v) { controller.startContinuousEdit(); setSheetState(() => strokeWidth = v); controller.setSelectedStroke(width: v, colorValue: element.strokeColorValue == 0 ? Colors.black.toARGB32() : element.strokeColorValue); })"],["_effectSlider('Shadow Blur', shadowBlur, 0, 80, (v) => setSheetState(() => shadowBlur = v))","_effectSlider('Shadow Blur', shadowBlur, 0, 80, (v) { controller.startContinuousEdit(); setSheetState(() => shadowBlur = v); controller.setSelectedShadow(blur: v, offsetX: shadowX, offsetY: shadowY, colorValue: element.shadowColorValue == 0 ? Colors.black54.toARGB32() : element.shadowColorValue); })"],["_effectSlider('Shadow X', shadowX, -100, 100, (v) => setSheetState(() => shadowX = v))","_effectSlider('Shadow X', shadowX, -100, 100, (v) { controller.startContinuousEdit(); setSheetState(() => shadowX = v); controller.setSelectedShadow(blur: shadowBlur, offsetX: v, offsetY: shadowY, colorValue: element.shadowColorValue == 0 ? Colors.black54.toARGB32() : element.shadowColorValue); })"],["_effectSlider('Shadow Y', shadowY, -100, 100, (v) => setSheetState(() => shadowY = v))","_effectSlider('Shadow Y', shadowY, -100, 100, (v) { controller.startContinuousEdit(); setSheetState(() => shadowY = v); controller.setSelectedShadow(blur: shadowBlur, offsetX: shadowX, offsetY: v, colorValue: element.shadowColorValue == 0 ? Colors.black54.toARGB32() : element.shadowColorValue); })"],["_effectSlider('Letter Spacing', letterSpacing, -10, 20, (v) => setSheetState(() => letterSpacing = v))","_effectSlider('Letter Spacing', letterSpacing, -10, 20, (v) { controller.startContinuousEdit(); setSheetState(() => letterSpacing = v); controller.setSelectedTypography(letterSpacing: v, lineHeight: lineHeight); })"],["_effectSlider('Line Height', lineHeight, 0.7, 3, (v) => setSheetState(() => lineHeight = v))","_effectSlider('Line Height', lineHeight, 0.7, 3, (v) { controller.startContinuousEdit(); setSheetState(() => lineHeight = v); controller.setSelectedTypography(letterSpacing: letterSpacing, lineHeight: v); })"]]
+for old, new in repls:
+    if old in s:
+        s = s.replace(old, new, 1)
+ws_live.write_text(live, encoding='utf-8')
+
+# ---------------------------------------------------------------------------
 # Canvas: pass the model radius into the catalog painter.
 # ---------------------------------------------------------------------------
 p = Path('lib/widgets/design_canvas.dart')
