@@ -6,7 +6,32 @@ old = "  void _checkpoint() { _history.add(ProjectModel.fromJson(project.toJson(
 new = "  void _checkpoint() {\n    if (_continuousCheckpointActive) return;\n    _history.add(ProjectModel.fromJson(project.toJson()));\n    if (_history.length > 30) _history.removeAt(0);\n    _future.clear();\n  }"
 if old in text:
     text = text.replace(old, new, 1)
+# The final generated controller must also keep every continuous-control
+# mutator guarded. This catches generator-order regressions before analyzer.
+required = [
+    'void _checkpoint() {',
+    'if (_continuousCheckpointActive) return;',
+    'void startContinuousEdit()',
+    'void finishContinuousEdit()',
+]
+for needle in required:
+    if needle not in text:
+        raise SystemExit(f'Continuous checkpoint contract missing: {needle}')
+
+for method_name in ['setSelectedRadius', 'setSelectedStroke', 'setSelectedShadow', 'setSelectedTypography', 'setSelectedFontSize']:
+    start = text.find('void ' + method_name)
+    if start < 0:
+        raise SystemExit(f'Continuous-control method missing: {method_name}')
+    end = text.find('\n  }', start)
+    block = text[start:end]
+    if '_checkpoint();' in block and 'if (!_continuousCheckpointActive) _checkpoint();' not in block:
+        raise SystemExit(f'Unprotected continuous checkpoint in {method_name}')
+
+workspace = Path('lib/screens/workspace_screen.dart').read_text(encoding='utf-8')
+if 'onChangeEnd: (_) => controller.finishContinuousEdit()' not in workspace:
+    raise SystemExit('Slider release checkpoint contract missing')
+if 'controller.startContinuousEdit();' not in workspace:
+    raise SystemExit('Slider continuous-start contract missing')
+
 path.write_text(text, encoding='utf-8')
-if new not in text:
-    raise SystemExit('Continuous checkpoint hardening contract missing')
-print('Continuous-edit checkpoint hardening verified.')
+print('Continuous-edit checkpoint hardening verified: single undo checkpoint, guarded mutators, and slider release completion.')
