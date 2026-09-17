@@ -158,17 +158,26 @@ p.write_text(s, encoding='utf-8')
 
 # ---------------------------------------------------------------------------
 # Layers: border must never be presented as a generic Shape.
+# Use structural regexes because earlier generators can alter whitespace.
 # ---------------------------------------------------------------------------
 p = Path('lib/widgets/layers_panel.dart')
 s = p.read_text(encoding='utf-8')
-old = """      case ElementKind.shape:\n        return 'Shape';"""
-new = """      case ElementKind.shape:\n        return element.catalogType == 'border' ? 'Border' : 'Shape';"""
-if old in s:
-    s = s.replace(old, new, 1)
-old = """      case ElementKind.shape:\n        return '${element.width.round()} × ${element.height.round()}';"""
-new = """      case ElementKind.shape:\n        final kind = element.catalogType == 'border' ? 'Border' : 'Shape';\n        return '$kind • ${element.width.round()} × ${element.height.round()}';"""
-if old in s:
-    s = s.replace(old, new, 1)
+s, title_count = re.subn(
+    r"(case\s+ElementKind\.shape:\s*)return\s+'Shape';",
+    r"\1return element.catalogType == 'border' ? 'Border' : 'Shape';",
+    s,
+    count=1,
+)
+s, subtitle_count = re.subn(
+    r"(case\s+ElementKind\.shape:\s*)return\s+'\$\{element\.width\.round\(\)\} × \$\{element\.height\.round\(\)\}';",
+    r"\1final kind = element.catalogType == 'border' ? 'Border' : 'Shape';\n        return '\$kind • \${element.width.round()} × \${element.height.round()}';",
+    s,
+    count=1,
+)
+if title_count == 0 and "return element.catalogType == 'border' ? 'Border' : 'Shape';" not in s:
+    raise SystemExit('Layer title shape label anchor not found')
+if subtitle_count == 0 and "final kind = element.catalogType == 'border' ? 'Border' : 'Shape';" not in s:
+    raise SystemExit('Layer subtitle shape label anchor not found')
 p.write_text(s, encoding='utf-8')
 
 # ---------------------------------------------------------------------------
