@@ -93,8 +93,8 @@ if 'controller.startContinuousEdit();' not in seg:
     )
     if count == 0:
         seg, count = re.subn(
-            r'(onChanged:\s*\([^)]*\)\s*\{)',
-            r'\1 controller.startContinuousEdit();',
+            r'onChanged:\s*\(newValue\)\s*=>\s*setSheetState\(\(\)\s*=>\s*value\s*=\s*newValue\)',
+            "onChanged: (newValue) {\\n                      controller.startContinuousEdit();\\n                      setSheetState(() => value = newValue);\\n                      apply(newValue);\\n                    }",
             seg,
             count=1,
         )
