@@ -3,6 +3,8 @@ from pathlib import Path
 path = Path("lib/screens/home_screen.dart")
 s = path.read_text(encoding="utf-8")
 
+# This pass runs after deep_functional_repair.py and home_compact_polish.py.
+# Target the actual post-pipeline form so the polish is deterministic/idempotent.
 old = """                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                     maxCrossAxisExtent: 150,
                     mainAxisSpacing: 10,
@@ -15,11 +17,12 @@ new = """                gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
                     crossAxisSpacing: 10,
                     childAspectRatio: .92,
                   ),"""
-if old not in s:
-    raise SystemExit("Home grid anchor not found")
-s = s.replace(old, new, 1)
+if old in s:
+    s = s.replace(old, new, 1)
+elif """maxCrossAxisExtent: 150""" not in s:
+    raise SystemExit("Home responsive grid anchor not found")
 
-old = """              padding: const EdgeInsets.fromLTRB(4, 9, 4, 6),
+old = """              padding: const EdgeInsets.fromLTRB(7, 10, 7, 8),
               child: Column(
                 children: [
                   Container(
@@ -32,44 +35,27 @@ new = """              padding: const EdgeInsets.fromLTRB(5, 10, 5, 7),
                   Container(
                     width: 46,
                     height: 46,"""
-if old not in s:
+if old in s:
+    s = s.replace(old, new, 1)
+elif "constraints: const BoxConstraints(minHeight: 112)" not in s:
     raise SystemExit("Feature tile anchor not found")
-s = s.replace(old, new, 1)
 
-old = """                      fontSize: 10.5,
-                      fontWeight: FontWeight.w900,"""
-new = """                      fontSize: 10.5,
-                      fontWeight: FontWeight.w900,"""
-# Keep typography stable; only add a subtle tile minimum height.
-old2 = """            child: InkWell(
+old = """            child: InkWell(
               onTap: () => _openFeature(title),
               borderRadius: BorderRadius.circular(18),
               child: Container(
                 decoration:"""
-new2 = """            child: InkWell(
+new = """            child: InkWell(
               onTap: () => _openFeature(title),
               borderRadius: BorderRadius.circular(18),
               child: Container(
                 constraints: const BoxConstraints(minHeight: 112),
                 decoration:"""
-if old2 not in s:
-    raise SystemExit("Feature container anchor not found")
-s = s.replace(old2, new2, 1)
-
-old = """  Widget _primaryButton(String label, VoidCallback onTap) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell("""
-new = """  Widget _primaryButton(String label, VoidCallback onTap) {
-    return Material(
-      color: Colors.transparent,
-      elevation: 0,
-      child: InkWell("""
 if old in s:
     s = s.replace(old, new, 1)
 
 required = [
-    "GridDelegateWithMaxCrossAxisExtent",
+    "maxCrossAxisExtent: 150",
     "constraints: const BoxConstraints(minHeight: 112)",
     "Icons.add_rounded",
     "JameelNooriNastaleeq",
