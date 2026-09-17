@@ -20,7 +20,7 @@ class WorkspaceController extends ChangeNotifier {
   DesignPage get page => project.pages[currentPageIndex];
   List<DesignElement> get elements => page.elements;
   static String _newId(String prefix) { _idCounter++; return '${prefix}_${DateTime.now().microsecondsSinceEpoch}_$_idCounter'; }
-  void _checkpoint() { _history.add(ProjectModel.fromJson(project.toJson())); if (_history.length > 30) _history.removeAt(0); _future.clear(); }
+  void _checkpoint() { if (_continuousCheckpointActive) return; _history.add(ProjectModel.fromJson(project.toJson())); if (_history.length > 30) _history.removeAt(0); _future.clear(); }
   void _changed() { project.lastModified = DateTime.now().millisecondsSinceEpoch; notifyListeners(); }
   bool get canUndo => _history.isNotEmpty;
   bool get canRedo => _future.isNotEmpty;
@@ -36,10 +36,10 @@ class WorkspaceController extends ChangeNotifier {
   void updateSelected({double? x, double? y, double? width, double? height, double? rotation, double? opacity, int? colorValue}) { final e = selected; if (e == null || e.locked) return; _checkpoint(); if (x != null) e.x = x; if (y != null) e.y = y; if (width != null) e.width = width.clamp(20, page.size.width).toDouble(); if (height != null) e.height = height.clamp(20, page.size.height).toDouble(); if (rotation != null) e.rotation = rotation; if (opacity != null) e.opacity = opacity.clamp(0, 1); if (colorValue != null) e.colorValue = colorValue; _changed(); }
   void setSelectedOpacity(double value) => updateSelected(opacity: value.clamp(0, 1));
   void resetSelectedRotation() => updateSelected(rotation: 0);
-  void setSelectedRadius(double value) { final e = selected; if (e == null || e.kind != ElementKind.shape || e.locked) return; _checkpoint(); e.radius = value.clamp(0, 240); _changed(); }
-  void setSelectedStroke({required double width, required int colorValue}) { final e = selected; if (e == null || e.locked) return; _checkpoint(); e.strokeWidth = width.clamp(0, 40); e.strokeColorValue = colorValue; _changed(); }
-  void setSelectedShadow({required double blur, required double offsetX, required double offsetY, required int colorValue}) { final e = selected; if (e == null || e.locked) return; _checkpoint(); e.shadowBlur = blur.clamp(0, 80); e.shadowOffsetX = offsetX.clamp(-100, 100); e.shadowOffsetY = offsetY.clamp(-100, 100); e.shadowColorValue = colorValue; _changed(); }
-  void setSelectedTypography({double? letterSpacing, double? lineHeight}) { final e = selected; if (e == null || e.kind != ElementKind.text || e.locked) return; _checkpoint(); if (letterSpacing != null) e.letterSpacing = letterSpacing.clamp(-10, 20); if (lineHeight != null) e.lineHeight = lineHeight.clamp(.7, 3); _changed(); }
+  void setSelectedRadius(double value) { final e = selected; if (e == null || e.kind != ElementKind.shape || e.locked) return; if (!_continuousCheckpointActive) _checkpoint(); e.radius = value.clamp(0, 240); _changed(); }
+  void setSelectedStroke({required double width, required int colorValue}) { final e = selected; if (e == null || e.locked) return; if (!_continuousCheckpointActive) _checkpoint(); e.strokeWidth = width.clamp(0, 40); e.strokeColorValue = colorValue; _changed(); }
+  void setSelectedShadow({required double blur, required double offsetX, required double offsetY, required int colorValue}) { final e = selected; if (e == null || e.locked) return; if (!_continuousCheckpointActive) _checkpoint(); e.shadowBlur = blur.clamp(0, 80); e.shadowOffsetX = offsetX.clamp(-100, 100); e.shadowOffsetY = offsetY.clamp(-100, 100); e.shadowColorValue = colorValue; _changed(); }
+  void setSelectedTypography({double? letterSpacing, double? lineHeight}) { final e = selected; if (e == null || e.kind != ElementKind.text || e.locked) return; if (!_continuousCheckpointActive) _checkpoint(); if (letterSpacing != null) e.letterSpacing = letterSpacing.clamp(-10, 20); if (lineHeight != null) e.lineHeight = lineHeight.clamp(.7, 3); _changed(); }
 
   void centerSelected() { final e = selected; if (e == null || e.locked) return; _checkpoint(); e.x = (page.size.width - e.width) / 2; e.y = (page.size.height - e.height) / 2; _changed(); }
   void startContinuousEdit() { if (_continuousCheckpointActive) return; final e = selected; if (e == null || e.locked) return; _checkpoint(); _continuousCheckpointActive = true; }
@@ -161,7 +161,7 @@ class WorkspaceController extends ChangeNotifier {
   void finishContinuousEdit() { _continuousCheckpointActive = false; notifyListeners(); }
 
   void editSelectedText(String value) { final e = selected; if (e == null || e.kind != ElementKind.text || e.locked) return; _checkpoint(); e.text = value; _changed(); }
-  void setSelectedFontSize(double value) { final e = selected; if (e == null || e.kind != ElementKind.text || e.locked) return; _checkpoint(); e.fontSize = value.clamp(5, 300); _changed(); }
+  void setSelectedFontSize(double value) { final e = selected; if (e == null || e.kind != ElementKind.text || e.locked) return; if (!_continuousCheckpointActive) _checkpoint(); e.fontSize = value.clamp(5, 300); _changed(); }
   void setSelectedFont(String family) { final e = selected; if (e == null || e.kind != ElementKind.text || e.locked) return; _checkpoint(); e.fontFamily = family; _changed(); }
   void toggleSelectedBold() { final e = selected; if (e == null || e.kind != ElementKind.text || e.locked) return; _checkpoint(); e.bold = !e.bold; _changed(); }
   void toggleSelectedItalic() { final e = selected; if (e == null || e.kind != ElementKind.text || e.locked) return; _checkpoint(); e.italic = !e.italic; _changed(); }
