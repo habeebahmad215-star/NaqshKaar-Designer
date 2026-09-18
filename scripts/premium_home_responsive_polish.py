@@ -1,58 +1,63 @@
 from pathlib import Path
+import re
 
 path = Path("lib/screens/home_screen.dart")
 s = path.read_text(encoding="utf-8")
 
-# This pass runs after deep_functional_repair.py and home_compact_polish.py.
-# Target the actual post-pipeline form so the polish is deterministic/idempotent.
-old = """                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 150,
-                    mainAxisSpacing: 10,
-                    crossAxisSpacing: 8,
-                    childAspectRatio: 1.15,
-                  ),"""
-new = """                gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+# The Home screen is produced by several ordered transformation passes.
+# Never depend on one exact whitespace/padding snapshot; normalize the final
+# feature grid/tile structure idempotently.
+if "maxCrossAxisExtent: 150" not in s:
+    raise SystemExit("Home responsive grid anchor not found")
+s = re.sub(
+    r"gridDelegate:\s*(?:const\s+)?SliverGridDelegateWithMaxCrossAxisExtent\(.*?\),",
+    """gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
                     maxCrossAxisExtent: 150,
                     mainAxisSpacing: 12,
                     crossAxisSpacing: 10,
                     childAspectRatio: .92,
-                  ),"""
-if old in s:
-    s = s.replace(old, new, 1)
-elif """maxCrossAxisExtent: 150""" not in s:
-    raise SystemExit("Home responsive grid anchor not found")
+                  )""",
+    s,
+    count=1,
+    flags=re.S,
+)
 
-old = """              padding: const EdgeInsets.fromLTRB(7, 10, 7, 8),
-              child: Column(
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,"""
-new = """              padding: const EdgeInsets.fromLTRB(5, 10, 5, 7),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
+# Scope tile normalization to _featureTile so unrelated Containers are untouched.
+start = s.find("Widget _featureTile(")
+end = s.find("Widget _recentProjects(", start)
+if start < 0 or end < 0:
+    raise SystemExit("Feature tile method not found")
+head, body, tail = s[:start], s[start:end], s[end:]
+
+body = re.sub(
+    r"padding:\s*const EdgeInsets\.fromLTRB\([^\n]+\),",
+    "padding: const EdgeInsets.fromLTRB(5, 10, 5, 7),",
+    body,
+    count=1,
+)
+body = re.sub(
+    r"child: Container\(\s*width:\s*48,\s*height:\s*48,",
+    """child: Container(
                     width: 46,
-                    height: 46,"""
-if old in s:
-    s = s.replace(old, new, 1)
-elif "constraints: const BoxConstraints(minHeight: 112)" not in s:
-    raise SystemExit("Feature tile anchor not found")
-
-old = """            child: InkWell(
-              onTap: () => _openFeature(title),
-              borderRadius: BorderRadius.circular(18),
-              child: Container(
-                decoration:"""
-new = """            child: InkWell(
-              onTap: () => _openFeature(title),
-              borderRadius: BorderRadius.circular(18),
-              child: Container(
+                    height: 46,""",
+    body,
+    count=1,
+    flags=re.S,
+)
+if "constraints: const BoxConstraints(minHeight: 112)" not in body:
+    body = body.replace(
+        """child: Container(
+                decoration:""",
+        """child: Container(
                 constraints: const BoxConstraints(minHeight: 112),
-                decoration:"""
-if old in s:
-    s = s.replace(old, new, 1)
+                decoration:""",
+        1,
+    )
+
+if "constraints: const BoxConstraints(minHeight: 112)" not in body:
+    raise SystemExit("Feature tile minimum-height anchor not found")
+
+s = head + body + tail
 
 required = [
     "maxCrossAxisExtent: 150",
@@ -65,4 +70,4 @@ for item in required:
         raise SystemExit(f"Home premium contract missing: {item}")
 
 path.write_text(s, encoding="utf-8")
-print("Premium home responsive polish applied and verified.")
+print("Premium home responsive polish normalized and verified.")
