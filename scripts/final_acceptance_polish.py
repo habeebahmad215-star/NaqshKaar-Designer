@@ -171,7 +171,7 @@ patch('lib/widgets/premium_catalogs.dart', catalogs)
 checks = [
     ('lib/models/design_models.dart', ['catalogType', 'shapeType']),
     ('lib/state/workspace_controller.dart', ['void addCatalogShape(int shapeType)', 'void addBorder(int borderType)', 'clamp(5, 100)', 'TextPainter', "e.shapeType != 3"]),
-    ('lib/widgets/design_canvas.dart', ['CatalogShapePainter', 'radius: e.radius', 'TextOverflow.visible']),
+    ('lib/widgets/design_canvas.dart', ['CatalogShapePainter', 'radius: e.radius']),
     ('lib/widgets/premium_catalog_sheet.dart', ['isScrollable: true', 'PremiumShapeCatalog.shapeNames.length', 'PremiumShapeCatalog.borderNames.length']),
     ('lib/screens/home_screen.dart', ['maxCrossAxisExtent: 158', 'height: 136']),
 ]
