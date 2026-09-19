@@ -120,7 +120,7 @@ class DesignElement {
       shadowOffsetX: (json['shadowOffsetX'] as num?)?.toDouble() ?? 0,
       shadowOffsetY: (json['shadowOffsetY'] as num?)?.toDouble() ?? 0,
       text: json['text']?.toString() ?? '', fontFamily: fontFamily,
-      fontSize: (json['fontSize'] as num?)?.toDouble() ?? 56,
+      fontSize: ((json['fontSize'] as num?)?.toDouble() ?? 56).clamp(5, 100).toDouble(),
       letterSpacing: (json['letterSpacing'] as num?)?.toDouble() ?? 0,
       lineHeight: ((json['lineHeight'] as num?)?.toDouble() ?? 1.25).clamp(.7, 3),
       bold: json['bold'] as bool? ?? false, italic: json['italic'] as bool? ?? false,
