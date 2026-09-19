@@ -47,7 +47,10 @@ patch('lib/screens/home_screen.dart', home)
 
 def catalog_sheet(s):
     # Real counts + horizontally scrollable tabs eliminate tab clipping and stale claims.
-    old = re.compile(r'TabBar\(\s*controller: _tabs,.*?\),', re.S)
+    old = re.compile(
+        r"TabBar\\(\\s*controller: _tabs,\\s*tabs: const \\[.*?\\],\\s*\\),",
+        re.S,
+    )
     new = '''TabBar(
               controller: _tabs,
               isScrollable: true,
