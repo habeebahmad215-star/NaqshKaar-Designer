@@ -39,7 +39,7 @@ def home(s):
     s = re.sub(r'maxLines:\s*1,\s*overflow:\s*TextOverflow\.ellipsis,\s*style:\s*const TextStyle\(fontSize:\s*7\.5',
                'maxLines: 2,\n                    softWrap: true,\n                    overflow: TextOverflow.clip,\n                    style: const TextStyle(fontSize: 8.2', s)
     # Keep all scrollable Home content above the persistent bottom navigation.
-    s = re.sub(r'const SliverToBoxAdapter\(child: SizedBox\(height:\s*(?:88|104|132|116|120|128),\)\)',
+    s = re.sub(r'const SliverToBoxAdapter\(child: SizedBox\(height:\s*(?:72|80|88|96|104|112|116|120|128|132|136),\)\)',
                'const SliverToBoxAdapter(child: SizedBox(height: 136))', s, count=1)
     return s
 
