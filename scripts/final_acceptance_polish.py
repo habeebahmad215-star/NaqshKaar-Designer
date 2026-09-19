@@ -39,7 +39,7 @@ def home(s):
     s = re.sub(r'maxLines:\s*1,\s*overflow:\s*TextOverflow\.ellipsis,\s*style:\s*const TextStyle\(fontSize:\s*7\.5',
                'maxLines: 2,\n                    softWrap: true,\n                    overflow: TextOverflow.clip,\n                    style: const TextStyle(fontSize: 8.2', s)
     # Keep all scrollable Home content above the persistent bottom navigation.
-    s = re.sub(r'const\\s+SliverToBoxAdapter\\(\\s*child:\\s*SizedBox\\(\\s*height:\\s*(?:72|80|88|96|104|112|116|120|128|132|136),?\\s*\\)\\s*\\)',
+    s = re.sub(r'const\s+SliverToBoxAdapter\(\s*child:\s*SizedBox\(\s*height:\s*(?:72|80|88|96|104|112|116|120|128|132|136),?\s*\)\s*\)',
                'const SliverToBoxAdapter(child: SizedBox(height: 136))', s, count=1, flags=re.S)
     return s
 
@@ -169,11 +169,12 @@ patch('lib/widgets/premium_catalogs.dart', catalogs)
 # Hard acceptance contracts: fail before Flutter analyze if the generated source
 # does not contain the behaviors this pass is intended to guarantee.
 checks = [
-    ('lib/models/design_models.dart', ['catalogType', 'shapeType']),
-    ('lib/state/workspace_controller.dart', ['void addCatalogShape(int shapeType)', 'void addBorder(int borderType)', 'clamp(5, 100)', 'TextPainter', "e.shapeType != 3"]),
-    ('lib/widgets/design_canvas.dart', ['CatalogShapePainter', 'radius: e.radius']),
+    ('lib/models/design_models.dart', ['catalogType', 'shapeType', "fontSize: ((json['fontSize'] as num?)?.toDouble() ?? 56).clamp(5, 100).toDouble()"]),
+    ('lib/state/workspace_controller.dart', ['void addCatalogShape(int shapeType)', 'void addBorder(int borderType)', 'clamp(5, 100)', 'TextPainter', "e.shapeType != 3", '_fitTextBoxToContent']),
+    ('lib/widgets/design_canvas.dart', ['CatalogShapePainter', 'radius: e.radius', 'fontSize: e.fontSize']),
     ('lib/widgets/premium_catalog_sheet.dart', ['isScrollable: true', 'PremiumShapeCatalog.shapeNames.length', 'PremiumShapeCatalog.borderNames.length']),
     ('lib/screens/home_screen.dart', ['maxCrossAxisExtent: 158', 'height: 136']),
+    ('lib/screens/workspace_screen.dart', ["_singleSlider('Font Size', element.fontSize, 5, 100"]),
 ]
 for path, needles in checks:
     text = Path(path).read_text(encoding='utf-8')
