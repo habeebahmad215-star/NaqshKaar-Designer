@@ -452,7 +452,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     );
   }
 
-  Future<void> _fontSize(DesignElement element) => _singleSlider('Font Size', element.fontSize, 8, 300, (v) => '${v.round()} px', controller.setSelectedFontSize);
+  Future<void> _fontSize(DesignElement element) => _singleSlider('Font Size', element.fontSize, 5, 100, (v) => '${v.round()} px', controller.setSelectedFontSize);
 
   Future<void> _opacity() {
     final element = controller.selected;
