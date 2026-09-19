@@ -160,8 +160,31 @@ class WorkspaceController extends ChangeNotifier {
   }
   void finishContinuousEdit() { _continuousCheckpointActive = false; notifyListeners(); }
 
-  void editSelectedText(String value) { final e = selected; if (e == null || e.kind != ElementKind.text || e.locked) return; _checkpoint(); e.text = value; _changed(); }
-  void setSelectedFontSize(double value) { final e = selected; if (e == null || e.kind != ElementKind.text || e.locked) return; if (!_continuousCheckpointActive) _checkpoint(); e.fontSize = value.clamp(5, 300); _changed(); }
+  void _fitTextBoxToContent(DesignElement e) {
+    if (e.kind != ElementKind.text || e.text.trim().isEmpty || e.width <= 0) return;
+    final painter = TextPainter(
+      text: TextSpan(
+        text: e.text,
+        style: TextStyle(
+          fontFamily: e.fontFamily,
+          fontSize: e.fontSize,
+          fontWeight: e.bold ? FontWeight.bold : FontWeight.normal,
+          fontStyle: e.italic ? FontStyle.italic : FontStyle.normal,
+          height: e.lineHeight,
+          letterSpacing: e.letterSpacing,
+        ),
+      ),
+      textAlign: e.textAlign,
+      textDirection: e.textDirection,
+      textWidthBasis: TextWidthBasis.parent,
+    );
+    painter.layout(maxWidth: e.width);
+    e.height = painter.height.clamp(32.0, page.size.height).toDouble();
+    painter.dispose();
+  }
+
+  void editSelectedText(String value) { final e = selected; if (e == null || e.kind != ElementKind.text || e.locked) return; _checkpoint(); e.text = value; _fitTextBoxToContent(e); _changed(); }
+  void setSelectedFontSize(double value) { final e = selected; if (e == null || e.kind != ElementKind.text || e.locked) return; if (!_continuousCheckpointActive) _checkpoint(); e.fontSize = value.clamp(5, 100); _fitTextBoxToContent(e); _changed(); }
   void setSelectedFont(String family) { final e = selected; if (e == null || e.kind != ElementKind.text || e.locked) return; _checkpoint(); e.fontFamily = family; _changed(); }
   void toggleSelectedBold() { final e = selected; if (e == null || e.kind != ElementKind.text || e.locked) return; _checkpoint(); e.bold = !e.bold; _changed(); }
   void toggleSelectedItalic() { final e = selected; if (e == null || e.kind != ElementKind.text || e.locked) return; _checkpoint(); e.italic = !e.italic; _changed(); }
@@ -194,7 +217,7 @@ class WorkspaceController extends ChangeNotifier {
         e.y *= factor;
         e.width = (e.width * factor).clamp(32, width).toDouble();
         e.height = (e.height * factor).clamp(32, height).toDouble();
-        if (e.kind == ElementKind.text) e.fontSize = (e.fontSize * factor).clamp(5, 300).toDouble();
+        if (e.kind == ElementKind.text) e.fontSize = (e.fontSize * factor).clamp(5, 100).toDouble();
         e.letterSpacing *= factor;
         e.strokeWidth = (e.strokeWidth * factor).clamp(0, 40).toDouble();
         e.radius = (e.radius * factor).clamp(0, 240).toDouble();
