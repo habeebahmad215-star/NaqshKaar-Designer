@@ -114,6 +114,8 @@ jobs:
         run: python3 scripts/final_editor_ux_safety.py
       - name: Deep continuous-edit regression gate
         run: python3 scripts/continuous_edit_checkpoint_hardening.py
+      - name: Final screenshot-driven acceptance polish
+        run: python3 scripts/final_acceptance_polish.py
       - name: Disable only the non-build-blocking curly-braces lint
         run: |
           python3 - <<'PY'
