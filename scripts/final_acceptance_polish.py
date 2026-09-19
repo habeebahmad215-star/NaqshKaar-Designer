@@ -41,7 +41,7 @@ def home(s):
     # Keep all scrollable Home content above the persistent bottom navigation.
     s = re.sub(r'const\\s+SliverToBoxAdapter\\(\\s*child:\\s*SizedBox\\(\\s*height:\\s*(?:72|80|88|96|104|112|116|120|128|132|136),?\\s*\\)\\s*\\)',
                'const SliverToBoxAdapter(child: SizedBox(height: 136))', s, count=1, flags=re.S)
-return s
+    return s
 
 patch('lib/screens/home_screen.dart', home)
 
