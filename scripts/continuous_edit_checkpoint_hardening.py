@@ -41,8 +41,7 @@ for method_name in ['setSelectedRadius', 'setSelectedStroke', 'setSelectedShadow
     start = text.find('void ' + method_name)
     if start < 0:
         raise SystemExit(f'Continuous-control method missing: {method_name}')
-    end = text.find('
-  }', start)
+    end = text.find(r'\n  }', start)
     block = text[start:end]
     if '_checkpoint();' in block and 'if (!_continuousCheckpointActive) _checkpoint();' not in block:
         raise SystemExit(f'Unprotected continuous checkpoint in {method_name}')
