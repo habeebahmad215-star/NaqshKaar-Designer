@@ -426,7 +426,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     final element = controller.selected;
     if (element == null) return;
     controller.startContinuousEdit();
-    final family = await showModalBottomSheet<String>(
+    await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
       builder: (sheetContext) {
@@ -457,7 +457,6 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
         );
       },
     );
-    return family;
   }
 
   Widget _fontTile(String title, String subtitle, String family, String current) {
@@ -681,19 +680,17 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
 
   Future<void> _alignSheet() async {
     controller.startContinuousEdit();
-    final value = await _choiceSheet<TextAlign>('Text Alignment', [TextAlign.left, TextAlign.center, TextAlign.right, TextAlign.justify], (value) => value.name);
-    if (value != null) controller.setSelectedAlign(value);
+    await _choiceSheet<TextAlign>('Text Alignment', [TextAlign.left, TextAlign.center, TextAlign.right, TextAlign.justify], (value) => value.name, controller.setSelectedAlign);
     controller.finishContinuousEdit();
   }
 
   Future<void> _directionSheet() async {
     controller.startContinuousEdit();
-    final value = await _choiceSheet<TextDirection>('Text Direction', [TextDirection.rtl, TextDirection.ltr], (value) => value == TextDirection.rtl ? 'Right to left (Urdu)' : 'Left to right');
-    if (value != null) controller.setSelectedDirection(value);
+    await _choiceSheet<TextDirection>('Text Direction', [TextDirection.rtl, TextDirection.ltr], (value) => value == TextDirection.rtl ? 'Right to left (Urdu)' : 'Left to right', controller.setSelectedDirection);
     controller.finishContinuousEdit();
   }
 
-  Future<T?> _choiceSheet<T>(String title, List<T> values, String Function(T) label) {
+  Future<T?> _choiceSheet<T>(String title, List<T> values, String Function(T) label, ValueChanged<T>? liveApply) {
     return showModalBottomSheet<T>(
       context: context,
       showDragHandle: true,
@@ -703,7 +700,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
             shrinkWrap: true,
             children: [
               _SheetHeader(title, 'Choose a professional layout setting'),
-              ...values.map((value) => ListTile(title: Text(label(value), style: const TextStyle(fontWeight: FontWeight.w700)), onTap: () { Navigator.pop(sheetContext, value); }),
+              ...values.map((value) => ListTile(title: Text(label(value), style: const TextStyle(fontWeight: FontWeight.w700)), onTap: () { liveApply?.call(value); Navigator.pop(sheetContext, value); }),
             ],
           ),
         );
