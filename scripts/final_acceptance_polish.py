@@ -231,8 +231,9 @@ checks = [
     ('lib/widgets/design_canvas.dart', ['CatalogShapePainter', 'radius: e.radius', 'fontSize: e.fontSize']),
     ('lib/widgets/premium_catalog_sheet.dart', ['isScrollable: true', 'PremiumShapeCatalog.shapeNames.length', 'PremiumShapeCatalog.borderNames.length']),
     ('lib/screens/home_screen.dart', ['maxCrossAxisExtent: 158', 'height: 136']),
-    ('lib/screens/workspace_screen.dart', ["_singleSlider('Font Size', element.fontSize, 5, 100"]),
+    ('lib/screens/workspace_screen.dart', ["_fontSize(DesignElement element)", "5, 100"]),
 ]
+
 for path, needles in checks:
     text = Path(path).read_text(encoding='utf-8')
     for needle in needles:
