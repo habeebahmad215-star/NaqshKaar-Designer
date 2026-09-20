@@ -386,11 +386,16 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   Future<void> _editText() async {
     final element = controller.selected;
     if (element == null) return;
-    final value = await _textDialog('Edit Text', element.text);
-    if (value != null) controller.editSelectedText(value);
+    controller.startContinuousEdit();
+    final value = await _textDialog('Edit Text', element.text, livePreview: true);
+    if (value == null) {
+      controller.cancelContinuousEdit();
+    } else {
+      controller.finishContinuousEdit();
+    }
   }
 
-  Future<String?> _textDialog(String title, String initial) async {
+  Future<String?> _textDialog(String title, String initial, {bool livePreview = false}) async {
     final textController = TextEditingController(text: initial);
     final result = await showDialog<String>(
       context: context,
@@ -403,6 +408,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
             maxLines: 7,
             textDirection: TextDirection.rtl,
             style: const TextStyle(fontFamily: 'Gulzar', fontSize: 23),
+            onChanged: livePreview ? controller.editSelectedText : null,
             decoration: const InputDecoration(hintText: 'اردو متن', border: OutlineInputBorder()),
           ),
           actions: [
@@ -419,23 +425,40 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   Future<void> _fontSheet() async {
     final element = controller.selected;
     if (element == null) return;
+    controller.startContinuousEdit();
     final family = await showModalBottomSheet<String>(
       context: context,
       showDragHandle: true,
       builder: (sheetContext) {
         return SafeArea(
-          child: ListView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Expanded(
+                child: ListView(
             shrinkWrap: true,
             children: [
               const _SheetHeader('Urdu Typography', 'Premium Nastaliq font families'),
               _fontTile('Gulzar', 'Contemporary Nastaliq', 'Gulzar', element.fontFamily),
               _fontTile('Noto Nastaliq Urdu', 'Google Fonts Nastaliq', 'NotoNastaliqUrdu', element.fontFamily),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+                child: Row(
+                  children: [
+                    Expanded(child: OutlinedButton(onPressed: () { controller.cancelContinuousEdit(); Navigator.pop(sheetContext); }, child: const Text('Cancel'))),
+                    const SizedBox(width: 10),
+                    Expanded(child: FilledButton(onPressed: () { controller.finishContinuousEdit(); Navigator.pop(sheetContext); }, child: const Text('Done'))),
+                  ],
+                ),
+              ),
             ],
           ),
         );
       },
     );
-    if (family != null) controller.setSelectedFont(family);
+    return family;
   }
 
   Widget _fontTile(String title, String subtitle, String family, String current) {
@@ -448,7 +471,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
       title: Text(title, style: TextStyle(fontFamily: family, fontSize: 21, fontWeight: FontWeight.w700)),
       subtitle: Text(subtitle),
       trailing: active ? const Icon(Icons.check_circle_rounded, color: _primary) : null,
-      onTap: () => Navigator.pop(context, family),
+      onTap: () => controller.setSelectedFont(family),
     );
   }
 
@@ -476,6 +499,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     int? divisions,
   }) async {
     double value = initial.clamp(min, max).toDouble();
+    controller.startContinuousEdit();
+    controller.startContinuousEdit();
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -496,7 +521,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                       width: double.infinity,
                       child: FilledButton.icon(
                         onPressed: () {
-                          apply(value);
+                          controller.finishContinuousEdit();
                           Navigator.pop(sheetContext);
                         },
                         icon: const Icon(Icons.check_rounded),
@@ -511,12 +536,14 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
         );
       },
     );
+    controller.finishContinuousEdit();
   }
 
   Future<void> _colorSheet() async {
     final element = controller.selected;
     if (element == null) return;
     const colors = [Colors.black, Colors.white, _primary, Color(0xFF0F766E), Color(0xFFDC2626), Color(0xFFF59E0B), Color(0xFF2563EB), Color(0xFF7C2D12), Color(0xFFDB2777)];
+    controller.startContinuousEdit();
     final color = await showModalBottomSheet<Color>(
       context: context,
       showDragHandle: true,
@@ -529,7 +556,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
               runSpacing: 14,
               children: colors.map((color) {
                 return InkWell(
-                  onTap: () => Navigator.pop(sheetContext, color),
+                  onTap: () => controller.updateSelected(colorValue: color.toARGB32()),
                   borderRadius: BorderRadius.circular(30),
                   child: CircleAvatar(
                     radius: 25,
@@ -543,7 +570,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
         );
       },
     );
-    if (color != null) controller.updateSelected(colorValue: color.toARGB32());
+    controller.finishContinuousEdit();
   }
 
   Future<void> _effectsSheet() async {
@@ -554,6 +581,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     double shadowX = element.shadowOffsetX;
     double shadowY = element.shadowOffsetY;
 
+    controller.startContinuousEdit();
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -570,17 +598,16 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const _SheetHeader('Effects Studio', 'Stroke and soft shadow controls'),
-                      _effectSlider('Stroke', strokeWidth, 0, 40, (v) => setSheetState(() => strokeWidth = v)),
-                      _effectSlider('Shadow Blur', shadowBlur, 0, 80, (v) => setSheetState(() => shadowBlur = v)),
-                      _effectSlider('Shadow X', shadowX, -100, 100, (v) => setSheetState(() => shadowX = v)),
-                      _effectSlider('Shadow Y', shadowY, -100, 100, (v) => setSheetState(() => shadowY = v)),
+                      _effectSlider('Stroke', strokeWidth, 0, 40, (v) { setSheetState(() => strokeWidth = v); controller.setSelectedStroke(width: v, colorValue: element.strokeColorValue == 0 ? Colors.black.toARGB32() : element.strokeColorValue); }),
+                      _effectSlider('Shadow Blur', shadowBlur, 0, 80, (v) { setSheetState(() => shadowBlur = v); controller.setSelectedShadow(blur: v, offsetX: shadowX, offsetY: shadowY, colorValue: element.shadowColorValue == 0 ? Colors.black54.toARGB32() : element.shadowColorValue); }),
+                      _effectSlider('Shadow X', shadowX, -100, 100, (v) { setSheetState(() => shadowX = v); controller.setSelectedShadow(blur: shadowBlur, offsetX: v, offsetY: shadowY, colorValue: element.shadowColorValue == 0 ? Colors.black54.toARGB32() : element.shadowColorValue); }),
+                      _effectSlider('Shadow Y', shadowY, -100, 100, (v) { setSheetState(() => shadowY = v); controller.setSelectedShadow(blur: shadowBlur, offsetX: shadowX, offsetY: v, colorValue: element.shadowColorValue == 0 ? Colors.black54.toARGB32() : element.shadowColorValue); }),
                       const SizedBox(height: 8),
                       SizedBox(
                         width: double.infinity,
                         child: FilledButton.icon(
                           onPressed: () {
-                            controller.setSelectedStroke(width: strokeWidth, colorValue: element.strokeColorValue == 0 ? Colors.black.toARGB32() : element.strokeColorValue);
-                            controller.setSelectedShadow(blur: shadowBlur, offsetX: shadowX, offsetY: shadowY, colorValue: element.shadowColorValue == 0 ? Colors.black54.toARGB32() : element.shadowColorValue);
+                            controller.finishContinuousEdit();
                             Navigator.pop(sheetContext);
                           },
                           icon: const Icon(Icons.check_rounded),
@@ -596,6 +623,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
         );
       },
     );
+    controller.finishContinuousEdit();
   }
 
   Widget _effectSlider(String label, double value, double min, double max, ValueChanged<double> onChanged) {
@@ -628,8 +656,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const _SheetHeader('Typography Spacing', 'Fine control for Nastaliq composition'),
-                    _effectSlider('Letter Spacing', letterSpacing, -10, 20, (v) => setSheetState(() => letterSpacing = v)),
-                    _effectSlider('Line Height', lineHeight, 0.7, 3, (v) => setSheetState(() => lineHeight = v)),
+                    _effectSlider('Letter Spacing', letterSpacing, -10, 20, (v) { setSheetState(() => letterSpacing = v); controller.setSelectedTypography(letterSpacing: v, lineHeight: lineHeight); }),
+                    _effectSlider('Line Height', lineHeight, 0.7, 3, (v) { setSheetState(() => lineHeight = v); controller.setSelectedTypography(letterSpacing: letterSpacing, lineHeight: v); }),
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton.icon(
@@ -649,16 +677,21 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
         );
       },
     );
+    controller.finishContinuousEdit();
   }
 
   Future<void> _alignSheet() async {
+    controller.startContinuousEdit();
     final value = await _choiceSheet<TextAlign>('Text Alignment', [TextAlign.left, TextAlign.center, TextAlign.right, TextAlign.justify], (value) => value.name);
     if (value != null) controller.setSelectedAlign(value);
+    controller.finishContinuousEdit();
   }
 
   Future<void> _directionSheet() async {
+    controller.startContinuousEdit();
     final value = await _choiceSheet<TextDirection>('Text Direction', [TextDirection.rtl, TextDirection.ltr], (value) => value == TextDirection.rtl ? 'Right to left (Urdu)' : 'Left to right');
     if (value != null) controller.setSelectedDirection(value);
+    controller.finishContinuousEdit();
   }
 
   Future<T?> _choiceSheet<T>(String title, List<T> values, String Function(T) label) {
@@ -671,7 +704,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
             shrinkWrap: true,
             children: [
               _SheetHeader(title, 'Choose a professional layout setting'),
-              ...values.map((value) => ListTile(title: Text(label(value), style: const TextStyle(fontWeight: FontWeight.w700)), onTap: () => Navigator.pop(sheetContext, value))),
+              ...values.map((value) => ListTile(title: Text(label(value), style: const TextStyle(fontWeight: FontWeight.w700)), onTap: () { Navigator.pop(sheetContext, value); }),
             ],
           ),
         );
