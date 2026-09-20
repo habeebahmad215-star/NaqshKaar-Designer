@@ -35,6 +35,8 @@ jobs:
         run: |
           sed -i -E 's/^[[:space:]]*compileSdk[[:space:]]*=.*/    compileSdk = 36/' android/app/build.gradle.kts
           grep -n "compileSdk" android/app/build.gradle.kts
+      - name: Preflight Python transformation scripts
+        run: python3 -m py_compile scripts/*.py
       - name: Download bundled Urdu fonts
         run: |
           mkdir -p assets/fonts
