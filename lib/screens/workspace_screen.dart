@@ -434,14 +434,13 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(
-                child: ListView(
-            shrinkWrap: true,
-            children: [
-              const _SheetHeader('Urdu Typography', 'Premium Nastaliq font families'),
-              _fontTile('Gulzar', 'Contemporary Nastaliq', 'Gulzar', element.fontFamily),
-              _fontTile('Noto Nastaliq Urdu', 'Google Fonts Nastaliq', 'NotoNastaliqUrdu', element.fontFamily),
-                ),
+              ListView(
+                shrinkWrap: true,
+                children: [
+                  const _SheetHeader('Urdu Typography', 'Premium Nastaliq font families'),
+                  _fontTile('Gulzar', 'Contemporary Nastaliq', 'Gulzar', element.fontFamily),
+                  _fontTile('Noto Nastaliq Urdu', 'Google Fonts Nastaliq', 'NotoNastaliqUrdu', element.fontFamily),
+                ],
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
@@ -500,7 +499,6 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   }) async {
     double value = initial.clamp(min, max).toDouble();
     controller.startContinuousEdit();
-    controller.startContinuousEdit();
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -516,7 +514,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                     Text(title, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
                     const SizedBox(height: 8),
                     Text(display(value), style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: _primary)),
-                    Slider(min: min, max: max, divisions: divisions, value: value, onChanged: (newValue) { controller.startContinuousEdit(); setSheetState(() => value = newValue); apply(newValue); }, onChangeEnd: (_) => controller.finishContinuousEdit()),
+                    Slider(min: min, max: max, divisions: divisions, value: value, onChanged: (newValue) { setSheetState(() => value = newValue); apply(newValue); }),
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton.icon(
@@ -631,7 +629,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('$label  ${value.toStringAsFixed(1)}', style: const TextStyle(fontWeight: FontWeight.w700)),
-        Slider(min: min, max: max, value: value, onChanged: onChanged, onChangeEnd: (_) => controller.finishContinuousEdit()),
+        Slider(min: min, max: max, value: value, onChanged: onChanged),
       ],
     );
   }
@@ -642,6 +640,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     double letterSpacing = element.letterSpacing;
     double lineHeight = element.lineHeight;
 
+    controller.startContinuousEdit();
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -662,7 +661,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                       width: double.infinity,
                       child: FilledButton.icon(
                         onPressed: () {
-                          controller.setSelectedTypography(letterSpacing: letterSpacing, lineHeight: lineHeight);
+                          controller.finishContinuousEdit();
                           Navigator.pop(sheetContext);
                         },
                         icon: const Icon(Icons.check_rounded),
