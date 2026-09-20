@@ -137,13 +137,14 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import re
           path = Path('lib/widgets/design_canvas.dart')
-          text = path.read_text(encoding='utf-8')
-          text = re.sub(r'^\\s*textHeightBehavior:.*\\n', '', text, flags=re.M)
-          if 'textHeightBehavior:' in text:
-              raise SystemExit('Unsupported Text API survived normalization')
-          path.write_text(text, encoding='utf-8')
+          lines = path.read_text(encoding='utf-8').splitlines(keepends=True)
+          kept = [line for line in lines if 'textHeightBehavior:' not in line]
+          if len(kept) == len(lines):
+              print('No generated textHeightBehavior parameter found.')
+          else:
+              path.write_text(''.join(kept), encoding='utf-8')
+              print('Removed generated textHeightBehavior parameter.')
           PY
       - name: Apply safe Dart analyzer fixes
         run: dart fix --apply
