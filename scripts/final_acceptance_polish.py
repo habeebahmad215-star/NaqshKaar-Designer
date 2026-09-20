@@ -46,12 +46,8 @@ def home(s):
 patch('lib/screens/home_screen.dart', home)
 
 def catalog_sheet(s):
-    # Real counts + horizontally scrollable tabs eliminate tab clipping and stale claims.
-    old = re.compile(
-        r"TabBar\(\s*controller: _tabs,\s*tabs: const \[.*?\],\s*\),",
-        re.S,
-    )
-    new = '''TabBar(
+    # Deterministic catalog-tab normalization. Do not rely on one fragile whitespace shape.
+    dynamic_tabs = """TabBar(
               controller: _tabs,
               isScrollable: true,
               tabAlignment: TabAlignment.start,
@@ -61,19 +57,77 @@ def catalog_sheet(s):
                 Tab(text: 'Borders • ${PremiumShapeCatalog.borderNames.length}'),
                 Tab(text: 'Special Text • ${PremiumShapeCatalog.specialTextNames.length}'),
               ],
-            ),'''
-    if old.search(s):
-        s = old.sub(new, s, count=1)
+            ),"""
+
+    # First prefer the exact current generated block.
+    exact = """TabBar(
+              controller: _tabs,
+              tabs: const [
+                Tab(text: 'Shapes 100+'),
+                Tab(text: 'Borders 100+'),
+                Tab(text: 'Special Text 100+'),
+              ],
+            ),"""
+    if exact in s:
+        s = s.replace(exact, dynamic_tabs, 1)
+    elif 'PremiumShapeCatalog.shapeNames.length' not in s:
+        # Fallback: locate the TabBar call whose controller is _tabs and replace
+        # its complete balanced call, regardless of formatting/line wrapping.
+        marker = 'TabBar('
+        pos = s.find(marker)
+        while pos >= 0:
+            close = pos + len(marker)
+            depth = 1
+            in_single = False
+            in_double = False
+            escape = False
+            while close < len(s) and depth:
+                ch = s[close]
+                if escape:
+                    escape = False
+                elif ch == '\\':
+                    escape = True
+                elif in_single:
+                    if ch == "'":
+                        in_single = False
+                elif in_double:
+                    if ch == '"':
+                        in_double = False
+                elif ch == "'":
+                    in_single = True
+                elif ch == '"':
+                    in_double = True
+                elif ch == '(':
+                    depth += 1
+                elif ch == ')':
+                    depth -= 1
+                close += 1
+            block = s[pos:close]
+            if 'controller: _tabs' in block and 'tabs:' in block:
+                s = s[:pos] + dynamic_tabs.rstrip(',') + s[close:]
+                break
+            pos = s.find(marker, pos + len(marker))
+
+    # The acceptance contract must be true immediately after this transformation.
+    if 'PremiumShapeCatalog.shapeNames.length' not in s:
+        raise SystemExit('Catalog tab transformation failed: Shapes count was not inserted')
+    if 'PremiumShapeCatalog.borderNames.length' not in s:
+        raise SystemExit('Catalog tab transformation failed: Borders count was not inserted')
+    if 'PremiumShapeCatalog.specialTextNames.length' not in s:
+        raise SystemExit('Catalog tab transformation failed: Special Text count was not inserted')
+    if 'isScrollable: true' not in s:
+        raise SystemExit('Catalog tab transformation failed: scrollable TabBar missing')
+
     # Adaptive catalog cards; labels may wrap to two lines.
-    s = re.sub(r'const SliverGridDelegateWithFixedCrossAxisCount\(\s*crossAxisCount:\s*3,\s*mainAxisSpacing:\s*10,\s*crossAxisSpacing:\s*10,\s*childAspectRatio:\s*\.88,\s*\)',
+    s = re.sub(r'const SliverGridDelegateWithFixedCrossAxisCount\\(\\s*crossAxisCount:\\s*3,\\s*mainAxisSpacing:\\s*10,\\s*crossAxisSpacing:\\s*10,\\s*childAspectRatio:\\s*\\.88,\\s*\\)',
                '''const SliverGridDelegateWithMaxCrossAxisExtent(
         maxCrossAxisExtent: 155,
         mainAxisSpacing: 10,
         crossAxisSpacing: 10,
         childAspectRatio: .90,
       )''', s, count=1)
-    s = s.replace("maxLines: 1,\n                    overflow: TextOverflow.ellipsis,\n                    textAlign: TextAlign.center,",
-                  "maxLines: 2,\n                    softWrap: true,\n                    overflow: TextOverflow.clip,\n                    textAlign: TextAlign.center,")
+    s = s.replace("maxLines: 1,\\n                    overflow: TextOverflow.ellipsis,\\n                    textAlign: TextAlign.center,",
+                  "maxLines: 2,\\n                    softWrap: true,\\n                    overflow: TextOverflow.clip,\\n                    textAlign: TextAlign.center,")
     return s
 
 patch('lib/widgets/premium_catalog_sheet.dart', catalog_sheet)
