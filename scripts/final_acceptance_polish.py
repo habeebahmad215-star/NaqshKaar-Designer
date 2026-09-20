@@ -119,15 +119,15 @@ def catalog_sheet(s):
         raise SystemExit('Catalog tab transformation failed: scrollable TabBar missing')
 
     # Adaptive catalog cards; labels may wrap to two lines.
-    s = re.sub(r'const SliverGridDelegateWithFixedCrossAxisCount\\(\\s*crossAxisCount:\\s*3,\\s*mainAxisSpacing:\\s*10,\\s*crossAxisSpacing:\\s*10,\\s*childAspectRatio:\\s*\\.88,\\s*\\)',
+    s = re.sub(r'const SliverGridDelegateWithFixedCrossAxisCount\(\s*crossAxisCount:\s*3,\s*mainAxisSpacing:\s*10,\s*crossAxisSpacing:\s*10,\s*childAspectRatio:\s*\.88,\s*\)',
                '''const SliverGridDelegateWithMaxCrossAxisExtent(
         maxCrossAxisExtent: 155,
         mainAxisSpacing: 10,
         crossAxisSpacing: 10,
         childAspectRatio: .90,
       )''', s, count=1)
-    s = s.replace("maxLines: 1,\\n                    overflow: TextOverflow.ellipsis,\\n                    textAlign: TextAlign.center,",
-                  "maxLines: 2,\\n                    softWrap: true,\\n                    overflow: TextOverflow.clip,\\n                    textAlign: TextAlign.center,")
+    s = s.replace("maxLines: 1,\n                    overflow: TextOverflow.ellipsis,\n                    textAlign: TextAlign.center,",
+                  "maxLines: 2,\n                    softWrap: true,\n                    overflow: TextOverflow.clip,\n                    textAlign: TextAlign.center,")
     return s
 
 patch('lib/widgets/premium_catalog_sheet.dart', catalog_sheet)
