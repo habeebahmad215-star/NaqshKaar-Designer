@@ -70,7 +70,7 @@ PDF_EXPORT = r'''  Future<void> _exportRenderedPdf() async {
 
 '''
 
-COMPOSER = r'''  Future<String?> _textDialog(String title, String initial, {String fontFamily = 'JameelNooriNastaleeq'}) async {
+COMPOSER = r'''  Future<String?> _textDialog(String title, String initial, {String fontFamily = 'JameelNooriNastaleeq', bool livePreview = false}) async {
     final textController = TextEditingController(text: initial);
     var selectedFont = fontFamily;
     var fontSize = 30.0;
@@ -121,6 +121,7 @@ COMPOSER = r'''  Future<String?> _textDialog(String title, String initial, {Stri
                               child: TextField(
                                 controller: textController,
                                 autofocus: true,
+                                onChanged: livePreview ? controller.editSelectedText : null,
                                 minLines: 5,
                                 maxLines: 9,
                                 textDirection: TextDirection.rtl,
@@ -140,10 +141,10 @@ COMPOSER = r'''  Future<String?> _textDialog(String title, String initial, {Stri
                               }).toList()),
                             ),
                             const SizedBox(height: 8),
-                            if (activePanel == 'Font') _composerFontPanel(selectedFont, (font) => setState(() => selectedFont = font))
-                            else if (activePanel == 'Size') _composerSizePanel(fontSize, (size) => setState(() => fontSize = size))
-                            else if (activePanel == 'Style') _composerStylePanel(bold, italic, (v) => setState(() => bold = v), (v) => setState(() => italic = v))
-                            else _composerAlignPanel(textAlign, (align) => setState(() => textAlign = align)),
+                            if (activePanel == 'Font') _composerFontPanel(selectedFont, (font) { setState(() => selectedFont = font); if (livePreview) controller.setSelectedFont(font); })
+                            else if (activePanel == 'Size') _composerSizePanel(fontSize, (size) { setState(() => fontSize = size); if (livePreview) controller.setSelectedFontSize(size); })
+                            else if (activePanel == 'Style') _composerStylePanel(bold, italic, (v) { final changed = v != bold; setState(() => bold = v); if (livePreview && changed) controller.toggleSelectedBold(); }, (v) { final changed = v != italic; setState(() => italic = v); if (livePreview && changed) controller.toggleSelectedItalic(); })
+                            else _composerAlignPanel(textAlign, (align) { setState(() => textAlign = align); if (livePreview) controller.setSelectedAlign(align); }),
                           ]),
                         ),
                       ),
@@ -188,7 +189,7 @@ if count != 1: raise SystemExit('Could not locate the font sheet section.')
 new_text = new_text.replace("fontFamily == 'JameelNoori' ? 'Gulzar' : fontFamily", "fontFamily")
 new_text = new_text.replace("fontFamily: 'Gulzar', fontSize: 23", "fontFamily: 'JameelNooriNastaleeq', fontSize: 23")
 new_text = new_text.replace("import 'package:flutter/material.dart';", "import 'dart:typed_data';\n\nimport 'package:flutter/material.dart';")
-new_text, count = re.subn(r"  Future<String\?> _textDialog\(String title, String initial\) async \{.*?\n  \}\n\n  Future<void> _fontSheet", COMPOSER + "  Future<void> _fontSheet", new_text, count=1, flags=re.S)
+new_text, count = re.subn(r"  Future<String\?> _textDialog\(String title, String initial(?:, \{.*?\})?\) async \{.*?\n  \}\n\n  Future<void> _fontSheet", COMPOSER + "  Future<void> _fontSheet", new_text, count=1, flags=re.S)
 if count != 1: raise SystemExit('Could not locate the text composer section.')
 export_method = r'''  Future<void> _exportMenu(String value) async {
     try {
