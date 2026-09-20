@@ -11,6 +11,7 @@ class WorkspaceController extends ChangeNotifier {
   int currentPageIndex = 0;
   String? selectedId;
   bool _continuousCheckpointActive = false;
+  ProjectModel? _continuousSnapshot;
 
   WorkspaceController({ProjectModel? initial, CanvasSize? newSize}) {
     project = initial ?? ProjectModel(id: _newId('project'), name: 'NaqshKaar Design', pages: [DesignPage(title: 'Page 1', size: newSize ?? const CanvasSize(1080, 1080))]);
@@ -42,7 +43,24 @@ class WorkspaceController extends ChangeNotifier {
   void setSelectedTypography({double? letterSpacing, double? lineHeight}) { final e = selected; if (e == null || e.kind != ElementKind.text || e.locked) return; if (!_continuousCheckpointActive) _checkpoint(); if (letterSpacing != null) e.letterSpacing = letterSpacing.clamp(-10, 20); if (lineHeight != null) e.lineHeight = lineHeight.clamp(.7, 3); _changed(); }
 
   void centerSelected() { final e = selected; if (e == null || e.locked) return; _checkpoint(); e.x = (page.size.width - e.width) / 2; e.y = (page.size.height - e.height) / 2; _changed(); }
-  void startContinuousEdit() { if (_continuousCheckpointActive) return; final e = selected; if (e == null || e.locked) return; _checkpoint(); _continuousCheckpointActive = true; }
+  void startContinuousEdit() {
+    if (_continuousCheckpointActive) return;
+    final e = selected;
+    if (e == null || e.locked) return;
+    _checkpoint();
+    _continuousSnapshot = ProjectModel.fromJson(project.toJson());
+    _continuousCheckpointActive = true;
+  }
+
+  void cancelContinuousEdit() {
+    if (!_continuousCheckpointActive || _continuousSnapshot == null) return;
+    project = _continuousSnapshot!;
+    _continuousSnapshot = null;
+    _continuousCheckpointActive = false;
+    currentPageIndex = currentPageIndex.clamp(0, project.pages.length - 1);
+    selectedId = selectedId != null && elements.any((e) => e.id == selectedId) ? selectedId : null;
+    _changed();
+  }
 
   void moveSelectedBy(double dx, double dy) {
     final e = selected;
@@ -158,7 +176,11 @@ class WorkspaceController extends ChangeNotifier {
     e.rotation = (angle - snapped).abs() <= threshold ? snapped : angle;
     _changed();
   }
-  void finishContinuousEdit() { _continuousCheckpointActive = false; notifyListeners(); }
+  void finishContinuousEdit() {
+    _continuousSnapshot = null;
+    _continuousCheckpointActive = false;
+    notifyListeners();
+  }
 
   void _fitTextBoxToContent(DesignElement e) {
     if (e.kind != ElementKind.text || e.text.trim().isEmpty || e.width <= 0) return;
@@ -183,13 +205,13 @@ class WorkspaceController extends ChangeNotifier {
     painter.dispose();
   }
 
-  void editSelectedText(String value) { final e = selected; if (e == null || e.kind != ElementKind.text || e.locked) return; _checkpoint(); e.text = value; _fitTextBoxToContent(e); _changed(); }
+  void editSelectedText(String value) { final e = selected; if (e == null || e.kind != ElementKind.text || e.locked) return; if (!_continuousCheckpointActive) _checkpoint(); e.text = value; _fitTextBoxToContent(e); _changed(); }
   void setSelectedFontSize(double value) { final e = selected; if (e == null || e.kind != ElementKind.text || e.locked) return; if (!_continuousCheckpointActive) _checkpoint(); e.fontSize = value.clamp(5, 100); _fitTextBoxToContent(e); _changed(); }
-  void setSelectedFont(String family) { final e = selected; if (e == null || e.kind != ElementKind.text || e.locked) return; _checkpoint(); e.fontFamily = family; _changed(); }
+  void setSelectedFont(String family) { final e = selected; if (e == null || e.kind != ElementKind.text || e.locked) return; if (!_continuousCheckpointActive) _checkpoint(); e.fontFamily = family; _fitTextBoxToContent(e); _changed(); }
   void toggleSelectedBold() { final e = selected; if (e == null || e.kind != ElementKind.text || e.locked) return; _checkpoint(); e.bold = !e.bold; _changed(); }
   void toggleSelectedItalic() { final e = selected; if (e == null || e.kind != ElementKind.text || e.locked) return; _checkpoint(); e.italic = !e.italic; _changed(); }
-  void setSelectedAlign(TextAlign align) { final e = selected; if (e == null || e.kind != ElementKind.text || e.locked) return; _checkpoint(); e.textAlign = align; _changed(); }
-  void setSelectedDirection(TextDirection direction) { final e = selected; if (e == null || e.kind != ElementKind.text || e.locked) return; _checkpoint(); e.textDirection = direction; _changed(); }
+  void setSelectedAlign(TextAlign align) { final e = selected; if (e == null || e.kind != ElementKind.text || e.locked) return; if (!_continuousCheckpointActive) _checkpoint(); e.textAlign = align; _changed(); }
+  void setSelectedDirection(TextDirection direction) { final e = selected; if (e == null || e.kind != ElementKind.text || e.locked) return; if (!_continuousCheckpointActive) _checkpoint(); e.textDirection = direction; _changed(); }
   void toggleSelectedLock() { final e = selected; if (e == null) return; _checkpoint(); e.locked = !e.locked; _changed(); }
   void toggleSelectedHidden() { final e = selected; if (e == null) return; _checkpoint(); e.hidden = !e.hidden; _changed(); }
   void bringSelectedToFront() { final e = selected; if (e == null) return; final i = elements.indexOf(e); if (i < 0 || i == elements.length - 1) return; _checkpoint(); elements.removeAt(i); elements.add(e); _changed(); }
@@ -199,7 +221,7 @@ class WorkspaceController extends ChangeNotifier {
   DesignElement? get selected => selectedId == null ? null : elements.where((e) => e.id == selectedId).firstOrNull;
   void deleteSelected() { final id = selectedId; if (id == null) return; final i = elements.indexWhere((e) => e.id == id); if (i < 0) return; _checkpoint(); elements.removeAt(i); selectedId = null; _changed(); }
   void duplicateSelected() { final e = selected; if (e == null) return; _checkpoint(); final copy = e.clone()..id = _newId('element'); copy.x += 24; copy.y += 24; elements.add(copy); selectedId = copy.id; _changed(); }
-  void setBackground(Color color) { _checkpoint(); page.background = color; _changed(); }
+  void setBackground(Color color) { if (!_continuousCheckpointActive) _checkpoint(); page.background = color; _changed(); }
 
   /// Resizes the paper while preserving the design's proportions. A uniform
   /// scale avoids stretching Urdu typography, images, shapes, and effects.
