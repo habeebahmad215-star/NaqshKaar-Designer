@@ -133,6 +133,18 @@ jobs:
               text = text.replace(rules_marker, rules_marker + '    ' + rule + '\n', 1)
               path.write_text(text, encoding='utf-8')
           PY
+      - name: Normalize unsupported Text API before analyzer
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          path = Path('lib/widgets/design_canvas.dart')
+          text = path.read_text(encoding='utf-8')
+          text = re.sub(r'^\\s*textHeightBehavior:.*\\n', '', text, flags=re.M)
+          if 'textHeightBehavior:' in text:
+              raise SystemExit('Unsupported Text API survived normalization')
+          path.write_text(text, encoding='utf-8')
+          PY
       - name: Apply safe Dart analyzer fixes
         run: dart fix --apply
       - name: Format generated Dart sources
