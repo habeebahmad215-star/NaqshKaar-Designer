@@ -49,10 +49,21 @@ patch('lib/screens/home_screen.dart', home)
 # Re-establish the final editor control after all generators have run.
 def workspace_font_size(s):
     if '_fontSize(DesignElement element)' not in s:
-        marker = '  Future<void> _opacity() {'
+        # Use the generic slider method as the stable insertion boundary.
+        # _opacity is optional across generated workspace variants.
+        marker = '  Future<void> _singleSlider('
         if marker not in s:
-            raise SystemExit('Font-size normalization anchor missing: _opacity()')
-        s = s.replace(marker, "  Future<void> _fontSize(DesignElement element) => _singleSlider(\n    'Font Size',\n    element.fontSize,\n    5,\n    100,\n    (v) => '${v.round()} px',\n    controller.setSelectedFontSize,\n  );\n" + marker, 1)
+            raise SystemExit('Font-size normalization anchor missing: _singleSlider(')
+        s = s.replace(marker, "  Future<void> _fontSize(DesignElement element) => _singleSlider(
+    'Font Size',
+    element.fontSize,
+    5,
+    100,
+    (v) => '${v.round()} px',
+    controller.setSelectedFontSize,
+  );
+
+" + marker, 1)
     return s
 
 patch('lib/screens/workspace_screen.dart', workspace_font_size)
