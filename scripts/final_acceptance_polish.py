@@ -54,7 +54,7 @@ def workspace_font_size(s):
         marker = '  Future<void> _singleSlider('
         if marker not in s:
             raise SystemExit('Font-size normalization anchor missing: _singleSlider(')
-        s = s.replace(marker, "  Future<void> _fontSize(DesignElement element) => _singleSlider(
+        insertion = """  Future<void> _fontSize(DesignElement element) => _singleSlider(
     'Font Size',
     element.fontSize,
     5,
@@ -63,7 +63,8 @@ def workspace_font_size(s):
     controller.setSelectedFontSize,
   );
 
-" + marker, 1)
+"""
+        s = s.replace(marker, insertion + marker, 1)
     return s
 
 patch('lib/screens/workspace_screen.dart', workspace_font_size)
