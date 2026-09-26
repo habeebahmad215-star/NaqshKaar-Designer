@@ -73,7 +73,7 @@ def replace_method(source, name, next_name, body):
     def declaration_pos(text, method_name, offset=0):
         escaped = re.escape(method_name.rstrip('('))
         pattern = re.compile(
-            rf'^  [A-Za-z_][A-Za-z0-9_<>?,. ]*\\s+{escaped}\\s*\\(',
+            rf'^  [A-Za-z_][A-Za-z0-9_<>?,. ]*\s+{escaped}\\s*\\(',
             re.MULTILINE,
         )
         match = pattern.search(text, offset)
