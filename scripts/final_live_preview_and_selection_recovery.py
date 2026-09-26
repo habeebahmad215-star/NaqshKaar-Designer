@@ -92,6 +92,16 @@ def replace_method(source, name, next_name, body):
 ws_path = Path('lib/screens/workspace_screen.dart')
 ws = ws_path.read_text(encoding='utf-8')
 
+# Remove an obsolete named argument left by an earlier editor pass.
+ws = ws.replace(
+    "await _textDialog('Edit Text', element.text, livePreview: true)",
+    "await _textDialog('Edit Text', element.text)",
+)
+
+# Normalize stale popup-context references that escaped a builder during an
+# earlier source transformation. State.context is valid in every such action.
+ws = ws.replace("Navigator.pop(sheetContext", "Navigator.pop(context")
+
 font = r'''  Future<void> _fontSheet() async {
     final element = controller.selected;
     if (element == null) return;
