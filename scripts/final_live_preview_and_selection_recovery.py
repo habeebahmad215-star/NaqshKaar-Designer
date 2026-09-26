@@ -103,14 +103,6 @@ ws = ws.replace(
 ws = ws.replace("Navigator.pop(sheetContext", "Navigator.pop(context")
 ws = ws.replace("sheetContext", "context")
 
-# The recovery pass replaces the alignment/direction flows with live-preview
-# sheets, so the legacy generic choice sheet becomes dead code. Remove it to
-# keep the final analyzer warning-free.
-choice_start = ws.find('  Future<T?> _choiceSheet<T>')
-choice_end = ws.find('  Future<void> _arrangeSheet()', choice_start + 1) if choice_start >= 0 else -1
-if choice_start >= 0 and choice_end > choice_start:
-    ws = ws[:choice_start] + ws[choice_end:]
-
 font = r'''  Future<void> _fontSheet() async {
     final element = controller.selected;
     if (element == null) return;
@@ -509,6 +501,12 @@ checks = [
 for needle in checks:
     if needle not in ws:
         raise SystemExit(f'Live preview hardening invariant missing: {needle}')
+
+# All alignment/direction calls have already been replaced above.
+choice_start = ws.find('  Future<T?> _choiceSheet<T>')
+choice_end = ws.find('  Future<void> _arrangeSheet()', choice_start + 1) if choice_start >= 0 else -1
+if choice_start >= 0 and choice_end > choice_start:
+    ws = ws[:choice_start] + ws[choice_end:]
 
 ws_path.write_text(ws, encoding='utf-8')
 print('Final live-preview hardening verified: font, sliders, color, effects, spacing, alignment, direction, and background mutate the real model while their popup stays open.')
