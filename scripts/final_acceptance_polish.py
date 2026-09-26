@@ -230,6 +230,63 @@ def canvas(s):
             s=s.replace(old,new,1)
     return s
 
+def repair_workspace_font_catalog(s):
+    # The generated font catalog must remain one valid class-member block.
+    # Rebuild it deterministically so no orphan spread/list fragments can reach dart format.
+    if 'Future<void> _fontSheet() async' not in s or 'Future<void> _fontSize' not in s:
+        return s
+    safe = '''  Future<void> _fontSheet() async {
+    final element = controller.selected;
+    if (element == null) return;
+    final family = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetContext) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.only(bottom: 18),
+          children: [
+            const _SheetHeader('Urdu Typography Studio', 'Premium Urdu, Nastaliq & Quranic font families'),
+            _fontTile('Jameel Noori Nastaleeq', 'Classic Urdu Nastaliq', 'JameelNooriNastaleeq', element.fontFamily),
+            _fontTile('Alvi Nastaleeq', 'Traditional Nastaliq', 'AlviNastaleeq', element.fontFamily),
+            _fontTile('Mehr Nastaliq', 'Lahori Nastaliq', 'MehrNastaliq', element.fontFamily),
+            _fontTile('Gulzar', 'Modern Nastaliq', 'Gulzar', element.fontFamily),
+            _fontTile('Noto Nastaliq Urdu', 'Unicode Nastaliq', 'NotoNastaliqUrdu', element.fontFamily),
+            _fontTile('Al Majeed Quranic', 'Quranic display', 'AlMajeedQuranic', element.fontFamily),
+            _fontTile('Bombay Black', 'Bold display', 'BombayBlack', element.fontFamily),
+          ],
+        ),
+      ),
+    );
+    if (family != null) controller.setSelectedFont(family);
+  }
+
+  Widget _fontTile(String title, String subtitle, String family, String current) {
+    final active = current == family;
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 3),
+      leading: CircleAvatar(
+        radius: 21,
+        backgroundColor: active ? _primary : const Color(0x12000000),
+        child: Icon(Icons.font_download_rounded, color: active ? Colors.white : Colors.black54),
+      ),
+      title: Text(title, style: TextStyle(fontFamily: family, fontSize: 21, fontWeight: FontWeight.w700)),
+      subtitle: Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis),
+      trailing: active ? const Icon(Icons.check_circle_rounded, color: _primary) : const Icon(Icons.chevron_right_rounded, color: Colors.black26),
+      onTap: () => Navigator.pop(sheetContext, family),
+    );
+  }
+
+'''
+    import re as _re
+    pattern = _re.compile(r'  Future<void> _fontSheet\(\) async \{.*?(?=  Future<void> _fontSize)', _re.S)
+    if not pattern.search(s):
+        raise SystemExit('Font catalog structural region not found')
+    return pattern.sub(safe, s, count=1)
+
+patch('lib/screens/workspace_screen.dart', repair_workspace_font_catalog)
+
 patch('lib/widgets/design_canvas.dart', canvas)
 
 def catalogs(s):
