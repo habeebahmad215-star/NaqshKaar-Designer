@@ -146,7 +146,13 @@ font = r'''  Future<void> _fontSheet() async {
     );
   }
 '''
-ws = replace_method(ws, '_fontSheet()', '_fontTile(', font)
+if 'Future<void> _fontSheet() async' not in ws:
+    tile_pos = ws.find('  Widget _fontTile(')
+    if tile_pos < 0:
+        raise SystemExit('Live preview hardening: missing font tile declaration')
+    ws = ws[:tile_pos] + font.rstrip() + '\\n\\n' + ws[tile_pos:]
+else:
+    ws = replace_method(ws, '_fontSheet()', '_fontTile(', font)
 
 single = r'''  Future<void> _singleSlider(
     String title,
