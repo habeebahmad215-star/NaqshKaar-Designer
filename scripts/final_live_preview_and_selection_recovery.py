@@ -103,6 +103,14 @@ ws = ws.replace(
 ws = ws.replace("Navigator.pop(sheetContext", "Navigator.pop(context")
 ws = ws.replace("sheetContext", "context")
 
+# The recovery pass replaces the alignment/direction flows with live-preview
+# sheets, so the legacy generic choice sheet becomes dead code. Remove it to
+# keep the final analyzer warning-free.
+choice_start = ws.find('  Future<T?> _choiceSheet<T>')
+choice_end = ws.find('  Future<void> _arrangeSheet()', choice_start + 1) if choice_start >= 0 else -1
+if choice_start >= 0 and choice_end > choice_start:
+    ws = ws[:choice_start] + ws[choice_end:]
+
 font = r'''  Future<void> _fontSheet() async {
     final element = controller.selected;
     if (element == null) return;
