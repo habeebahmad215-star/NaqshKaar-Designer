@@ -41,7 +41,8 @@ if 'void addTable(int rows, int cols)' not in c:
 
 w = W.read_text(encoding='utf-8')
 if "../widgets/studio_add_sheet.dart" not in w:
-    w = w.replace("import '../widgets/design_canvas.dart';", "import '../widgets/design_canvas.dart';\nimport '../widgets/layers_panel.dart';\nimport '../widgets/studio_add_sheet.dart';", 1)
+    w = w.replace("import '../widgets/design_canvas.dart';", "import '../widgets/design_canvas.dart';\nimport '../widgets/layers_panel.dart';\nimport '../widgets/studio_add_sheet.dart';
+import '../widgets/ai_studio_sheet.dart';", 1)
 elif "../widgets/layers_panel.dart" not in w:
     w = w.replace("import '../widgets/studio_add_sheet.dart';", "import '../widgets/layers_panel.dart';\nimport '../widgets/studio_add_sheet.dart';", 1)
 
@@ -50,7 +51,20 @@ if needle in w and "'Studio', _remainingToolsSheet" not in w:
     w = w.replace(needle, needle + "\n        _mainTool(Icons.apps_rounded, 'Studio', _remainingToolsSheet),", 1)
 
 if 'Future<void> _remainingToolsSheet()' not in w:
-    marker = '  Future<void> _addText() async {'
+    marker = '  Future<void> _aiStudioSheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      backgroundColor: const Color(0xFFF7F7FA),
+      builder: (_) => AiStudioSheet(
+        onWriteResult: (text) => controller.addText(text: text, rtl: true),
+        onImageResult: (bytes) => controller.addImage(bytes),
+      ),
+    );
+  }
+
+  Future<void> _addText() async {'
     if marker not in w:
         raise SystemExit('workspace insertion marker missing')
     method = '''  Future<void> _remainingToolsSheet() async {
@@ -84,6 +98,7 @@ if 'Future<void> _remainingToolsSheet()' not in w:
           controller.addText(text: 'بسم اللہ الرحمن الرحیم');
         },
         onImageStudio: controller.selected?.kind == ElementKind.image ? _imageStudioSheet : null,
+        onAiStudio: _aiStudioSheet,
       ),
     );
   }
