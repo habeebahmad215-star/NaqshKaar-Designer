@@ -430,7 +430,7 @@ ws = replace_method(ws, '_directionSheet()', '_choiceSheet<T>', direction)
 
 background = r'''  Future<void> _backgroundSheet() async {
     const colors = [Colors.white, Color(0xFF0F172A), Color(0xFFF8FAFC), Color(0xFFF5F3FF), Color(0xFFFEF3C7), Color(0xFFE0F2FE), Color(0xFFFCE7F3)];
-    final original = controller.project.backgroundColorValue;
+    final original = controller.page.background.toARGB32();
     var current = original;
     await showModalBottomSheet<void>(
       context: context, showDragHandle: true,
