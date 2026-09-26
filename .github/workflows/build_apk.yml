@@ -118,6 +118,14 @@ jobs:
         run: python3 scripts/continuous_edit_checkpoint_hardening.py
       - name: Final screenshot-driven acceptance polish
         run: python3 scripts/final_acceptance_polish.py
+      - name: Diagnostic generated workspace source on format failure
+        if: always()
+        run: |
+          echo "--- workspace lines 1125-1205 ---"
+          nl -ba lib/screens/workspace_screen.dart | sed -n '1125,1205p'
+          echo "--- workspace declaration map ---"
+          grep -nE '^  (Future|Widget|void) _' lib/screens/workspace_screen.dart | tail -n 40
+
       - name: Disable only the non-build-blocking curly-braces lint
         run: |
           python3 - <<'PY'
