@@ -510,9 +510,9 @@ if choice_start >= 0 and choice_end > choice_start:
 
 # Final generated-source compatibility sweep. Earlier passes may reintroduce
 # legacy named arguments or popup-context identifiers after this recovery pass.
-ws = re.sub(r",\\s*livePreview\\s*:\\s*true(?=\\s*\\))", "", ws)
+ws = re.sub(r",\s*livePreview\s*:\s*true(?=\s*\))", "", ws)
 ws = ws.replace(", {bool livePreview = false}", "")
-ws = re.sub(r"\\n\\s*onChanged:\\s*livePreview \\? controller\\.editSelectedText : null,", "", ws)
+ws = re.sub(r"\n\s*onChanged:\s*livePreview \? controller\.editSelectedText : null,", "", ws)
 ws = ws.replace("controller.project.backgroundColorValue", "controller.page.background.toARGB32()")
 ws = ws.replace("Navigator.pop(sheetContext", "Navigator.pop(context")
 ws = ws.replace("sheetContext", "context")
