@@ -71,7 +71,7 @@ def replace_method(source, name, next_name, body):
     import re
 
     def declaration_pos(text, method_name, offset=0):
-        escaped = re.escape(method_name.rstrip('('))
+        escaped = re.escape(method_name.rstrip('()'))
         pattern = re.compile(
             rf'^  [A-Za-z_][A-Za-z0-9_<>?,. ]*\s+{escaped}\s*\(',
             re.MULTILINE,
@@ -86,7 +86,7 @@ def replace_method(source, name, next_name, body):
     if end <= start:
         raise SystemExit(f'Live preview hardening: invalid method boundary for {name}')
 
-    return source[:start] + body.rstrip() + '\\n\\n' + source[end:]
+    return source[:start] + body.rstrip() + '\n\n' + source[end:]
 
 
 ws_path = Path('lib/screens/workspace_screen.dart')
@@ -150,7 +150,7 @@ if 'Future<void> _fontSheet() async' not in ws:
     tile_pos = ws.find('  Widget _fontTile(')
     if tile_pos < 0:
         raise SystemExit('Live preview hardening: missing font tile declaration')
-    ws = ws[:tile_pos] + font.rstrip() + '\\n\\n' + ws[tile_pos:]
+    ws = ws[:tile_pos] + font.rstrip() + '\n\n' + ws[tile_pos:]
 else:
     ws = replace_method(ws, '_fontSheet()', '_fontTile(', font)
 
