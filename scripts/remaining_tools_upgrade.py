@@ -41,17 +41,28 @@ if 'void addTable(int rows, int cols)' not in c:
 
 w = W.read_text(encoding='utf-8')
 if "../widgets/studio_add_sheet.dart" not in w:
-    w = w.replace("import '../widgets/design_canvas.dart';", "import '../widgets/design_canvas.dart';\nimport '../widgets/layers_panel.dart';\nimport '../widgets/studio_add_sheet.dart';
-import '../widgets/ai_studio_sheet.dart';", 1)
+    w = w.replace(
+        "import '../widgets/design_canvas.dart';",
+        "import '../widgets/design_canvas.dart';\nimport '../widgets/layers_panel.dart';\nimport '../widgets/studio_add_sheet.dart';\nimport '../widgets/ai_studio_sheet.dart';",
+        1,
+    )
 elif "../widgets/layers_panel.dart" not in w:
-    w = w.replace("import '../widgets/studio_add_sheet.dart';", "import '../widgets/layers_panel.dart';\nimport '../widgets/studio_add_sheet.dart';", 1)
+    w = w.replace(
+        "import '../widgets/studio_add_sheet.dart';",
+        "import '../widgets/layers_panel.dart';\nimport '../widgets/studio_add_sheet.dart';",
+        1,
+    )
 
 needle = "_mainTool(Icons.tune_rounded, 'Design', _designSheet),"
 if needle in w and "'Studio', _remainingToolsSheet" not in w:
-    w = w.replace(needle, needle + "\n        _mainTool(Icons.apps_rounded, 'Studio', _remainingToolsSheet),", 1)
+    w = w.replace(
+        needle,
+        needle + "\n        _mainTool(Icons.apps_rounded, 'Studio', _remainingToolsSheet),",
+        1,
+    )
 
 if 'Future<void> _remainingToolsSheet()' not in w:
-    marker = '  Future<void> _aiStudioSheet() async {
+    marker = """  Future<void> _aiStudioSheet() async {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -64,10 +75,10 @@ if 'Future<void> _remainingToolsSheet()' not in w:
     );
   }
 
-  Future<void> _addText() async {'
+  Future<void> _addText() async {"""
     if marker not in w:
         raise SystemExit('workspace insertion marker missing')
-    method = '''  Future<void> _remainingToolsSheet() async {
+    method = """  Future<void> _remainingToolsSheet() async {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -89,7 +100,10 @@ if 'Future<void> _remainingToolsSheet()' not in w:
             context: context,
             isScrollControlled: true,
             showDragHandle: true,
-            builder: (_) => SizedBox(height: MediaQuery.sizeOf(context).height * .72, child: LayersPanel(controller: controller)),
+            builder: (_) => SizedBox(
+              height: MediaQuery.sizeOf(context).height * .72,
+              child: LayersPanel(controller: controller),
+            ),
           );
         },
         onEffects: _effectsSheet,
@@ -97,7 +111,9 @@ if 'Future<void> _remainingToolsSheet()' not in w:
         onSpecialText: () async {
           controller.addText(text: 'بسم اللہ الرحمن الرحیم');
         },
-        onImageStudio: controller.selected?.kind == ElementKind.image ? _imageStudioSheet : null,
+        onImageStudio: controller.selected?.kind == ElementKind.image
+            ? _imageStudioSheet
+            : null,
         onAiStudio: _aiStudioSheet,
       ),
     );
@@ -108,18 +124,63 @@ if 'Future<void> _remainingToolsSheet()' not in w:
     var cols = 3;
     return showDialog<(int, int)>(
       context: context,
-      builder: (c) => StatefulBuilder(builder: (context, setState) => AlertDialog(
-        title: const Text('Table', style: TextStyle(fontWeight: FontWeight.w900)),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          Row(children: [const Expanded(child: Text('Rows')), Expanded(child: Slider(min: 1, max: 8, divisions: 7, value: rows.toDouble(), onChanged: (v) => setState(() => rows = v.round()))), Text('$rows')]),
-          Row(children: [const Expanded(child: Text('Columns')), Expanded(child: Slider(min: 1, max: 8, divisions: 7, value: cols.toDouble(), onChanged: (v) => setState(() => cols = v.round()))), Text('$cols')]),
-        ]),
-        actions: [TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cancel')), FilledButton(onPressed: () => Navigator.pop(c, (rows, cols)), child: const Text('Create'))],
-      )),
+      builder: (c) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text(
+            'Table',
+            style: TextStyle(fontWeight: FontWeight.w900),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  const Expanded(child: Text('Rows')),
+                  Expanded(
+                    child: Slider(
+                      min: 1,
+                      max: 8,
+                      divisions: 7,
+                      value: rows.toDouble(),
+                      onChanged: (v) => setState(() => rows = v.round()),
+                    ),
+                  ),
+                  Text('$rows'),
+                ],
+              ),
+              Row(
+                children: [
+                  const Expanded(child: Text('Columns')),
+                  Expanded(
+                    child: Slider(
+                      min: 1,
+                      max: 8,
+                      divisions: 7,
+                      value: cols.toDouble(),
+                      onChanged: (v) => setState(() => cols = v.round()),
+                    ),
+                  ),
+                  Text('$cols'),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(c),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(c, (rows, cols)),
+              child: const Text('Create'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-'''
+"""
     w = w.replace(marker, method + marker, 1)
 
 W.write_text(w, encoding='utf-8')
