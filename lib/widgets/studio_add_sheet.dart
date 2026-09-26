@@ -12,8 +12,9 @@ class StudioAddSheet extends StatelessWidget {
   final VoidCallback onExport;
   final VoidCallback onSpecialText;
   final VoidCallback? onImageStudio;
+  final VoidCallback? onAiStudio;
 
-  const StudioAddSheet({super.key, required this.onGallery, required this.onText, required this.onShape, required this.onTable, required this.onBackground, required this.onPages, required this.onLayers, required this.onEffects, required this.onExport, required this.onSpecialText, this.onImageStudio});
+  const StudioAddSheet({super.key, required this.onGallery, required this.onText, required this.onShape, required this.onTable, required this.onBackground, required this.onPages, required this.onLayers, required this.onEffects, required this.onExport, required this.onSpecialText, this.onImageStudio, this.onAiStudio});
 
   @override
   Widget build(BuildContext context) {
@@ -28,6 +29,7 @@ class StudioAddSheet extends StatelessWidget {
       _ToolItem(Icons.wallpaper_rounded, 'Background', 'Canvas background', onBackground, const Color(0xFFEA580C)),
       _ToolItem(Icons.dashboard_customize_rounded, 'Pages', 'Multi-page studio', onPages, const Color(0xFF4F46E5)),
       if (onImageStudio != null) _ToolItem(Icons.tune_rounded, 'Image Studio', 'Crop & fit', onImageStudio!, const Color(0xFF0891B2)),
+      if (onAiStudio != null) _ToolItem(Icons.auto_awesome_rounded, 'AI Studio', 'Write • Image • Magic', onAiStudio!, const Color(0xFF6D28D9)),
       _ToolItem(Icons.ios_share_rounded, 'Export', 'PNG / JPG / PDF', onExport, const Color(0xFF16A34A)),
     ];
     return SafeArea(
