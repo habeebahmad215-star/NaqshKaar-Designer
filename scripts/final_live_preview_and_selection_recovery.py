@@ -101,6 +101,7 @@ ws = ws.replace(
 # Normalize stale popup-context references that escaped a builder during an
 # earlier source transformation. State.context is valid in every such action.
 ws = ws.replace("Navigator.pop(sheetContext", "Navigator.pop(context")
+ws = ws.replace("sheetContext", "context")
 
 font = r'''  Future<void> _fontSheet() async {
     final element = controller.selected;
