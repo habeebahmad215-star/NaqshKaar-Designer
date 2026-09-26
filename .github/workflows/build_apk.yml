@@ -121,8 +121,16 @@ jobs:
       - name: Diagnostic generated workspace source on format failure
         if: always()
         run: |
+          echo "--- workspace lines 700-750 ---"
+          nl -ba lib/screens/workspace_screen.dart | sed -n '700,750p'
           echo "--- workspace lines 1125-1205 ---"
           nl -ba lib/screens/workspace_screen.dart | sed -n '1125,1205p'
+          echo "--- workspace lines 1295-1330 ---"
+          nl -ba lib/screens/workspace_screen.dart | sed -n '1295,1330p'
+          echo "--- workspace lines 2255-2280 ---"
+          nl -ba lib/screens/workspace_screen.dart | sed -n '2255,2280p'
+          echo "--- livePreview references ---"
+          grep -n "livePreview" lib/screens/workspace_screen.dart || true
           echo "--- workspace declaration map ---"
           grep -nE '^  (Future|Widget|void) _' lib/screens/workspace_screen.dart | tail -n 40
 
