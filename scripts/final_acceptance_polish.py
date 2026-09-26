@@ -274,7 +274,7 @@ def repair_workspace_font_catalog(s):
       title: Text(title, style: TextStyle(fontFamily: family, fontSize: 21, fontWeight: FontWeight.w700)),
       subtitle: Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis),
       trailing: active ? const Icon(Icons.check_circle_rounded, color: _primary) : const Icon(Icons.chevron_right_rounded, color: Colors.black26),
-      onTap: () => Navigator.pop(sheetContext, family),
+      onTap: () => Navigator.pop(context, family),
     );
   }
 
