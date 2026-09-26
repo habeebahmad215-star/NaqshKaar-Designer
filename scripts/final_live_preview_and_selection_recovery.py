@@ -508,5 +508,20 @@ choice_end = ws.find('  Future<void> _arrangeSheet()', choice_start + 1) if choi
 if choice_start >= 0 and choice_end > choice_start:
     ws = ws[:choice_start] + ws[choice_end:]
 
+# Final generated-source compatibility sweep. Earlier passes may reintroduce
+# legacy named arguments or popup-context identifiers after this recovery pass.
+ws = re.sub(r",\\s*livePreview\\s*:\\s*true(?=\\s*\\))", "", ws)
+ws = ws.replace(", {bool livePreview = false}", "")
+ws = re.sub(r"\\n\\s*onChanged:\\s*livePreview \\? controller\\.editSelectedText : null,", "", ws)
+ws = ws.replace("controller.project.backgroundColorValue", "controller.page.background.toARGB32()")
+ws = ws.replace("Navigator.pop(sheetContext", "Navigator.pop(context")
+ws = ws.replace("sheetContext", "context")
+
+# The generated source must not contain stale API names that caused analyzer
+# failures in previous runs.
+for forbidden in ("livePreview:", "backgroundColorValue", "Navigator.pop(sheetContext", "sheetContext"):
+    if forbidden in ws:
+        raise SystemExit(f"Final generated-source compatibility invariant failed: {forbidden}")
+
 ws_path.write_text(ws, encoding='utf-8')
 print('Final live-preview hardening verified: font, sliders, color, effects, spacing, alignment, direction, and background mutate the real model while their popup stays open.')
