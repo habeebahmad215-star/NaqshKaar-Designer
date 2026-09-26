@@ -68,21 +68,26 @@ print('Final editor UX recovery contracts verified.')
 # controller, so _changed() immediately repaints the canvas behind the sheet.
 # ---------------------------------------------------------------------------
 def replace_method(source, name, next_name, body):
-    needle = name.rstrip('(')
-    next_needle = next_name.rstrip('(')
-    start = source.find(needle)
-    if start < 0:
-        raise SystemExit(f'Live preview hardening: missing {name}')
-    start = source.rfind('  ', 0, start)
-    if start < 0:
-        raise SystemExit(f'Live preview hardening: missing method line for {name}')
-    end_name = source.find(next_needle, start + 2)
-    if end_name < 0:
-        raise SystemExit(f'Live preview hardening: missing boundary {next_name}')
-    end = source.rfind('  ', 0, end_name)
+    import re
+
+    def declaration_pos(text, method_name, offset=0):
+        escaped = re.escape(method_name.rstrip('('))
+        pattern = re.compile(
+            rf'^  [A-Za-z_][A-Za-z0-9_<>?,. ]*\\s+{escaped}\\s*\\(',
+            re.MULTILINE,
+        )
+        match = pattern.search(text, offset)
+        if match is None:
+            raise SystemExit(f'Live preview hardening: missing method declaration {method_name}')
+        return match.start()
+
+    start = declaration_pos(source, name)
+    end = declaration_pos(source, next_name, start + 1)
     if end <= start:
         raise SystemExit(f'Live preview hardening: invalid method boundary for {name}')
-    return source[:start] + body.rstrip() + '\n\n' + source[end:]
+
+    return source[:start] + body.rstrip() + '\\n\\n' + source[end:]
+
 
 ws_path = Path('lib/screens/workspace_screen.dart')
 ws = ws_path.read_text(encoding='utf-8')
