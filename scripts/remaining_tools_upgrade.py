@@ -3,6 +3,16 @@ from pathlib import Path
 W = Path('lib/screens/workspace_screen.dart')
 C = Path('lib/state/workspace_controller.dart')
 
+
+def insert_once(source, marker, text, label):
+    if text.strip() in source:
+        return source
+    pos = source.find(marker)
+    if pos < 0:
+        raise SystemExit(f'{label}: insertion marker missing')
+    return source[:pos] + text + source[pos:]
+
+
 c = C.read_text(encoding='utf-8')
 if 'void addTable(int rows, int cols)' not in c:
     anchor = '  DesignElement addImage(Uint8List bytes) {'
@@ -40,29 +50,24 @@ if 'void addTable(int rows, int cols)' not in c:
     C.write_text(c, encoding='utf-8')
 
 w = W.read_text(encoding='utf-8')
-if "../widgets/studio_add_sheet.dart" not in w:
-    w = w.replace(
-        "import '../widgets/design_canvas.dart';",
-        "import '../widgets/design_canvas.dart';\nimport '../widgets/layers_panel.dart';\nimport '../widgets/studio_add_sheet.dart';\nimport '../widgets/ai_studio_sheet.dart';",
-        1,
-    )
-elif "../widgets/layers_panel.dart" not in w:
-    w = w.replace(
-        "import '../widgets/studio_add_sheet.dart';",
-        "import '../widgets/layers_panel.dart';\nimport '../widgets/studio_add_sheet.dart';",
-        1,
-    )
 
-needle = "_mainTool(Icons.tune_rounded, 'Design', _designSheet),"
-if needle in w and "'Studio', _remainingToolsSheet" not in w:
-    w = w.replace(
-        needle,
-        needle + "\n        _mainTool(Icons.apps_rounded, 'Studio', _remainingToolsSheet),",
-        1,
-    )
+imports = [
+    ("import '../widgets/layers_panel.dart';", "import '../widgets/design_canvas.dart';"),
+    ("import '../widgets/studio_add_sheet.dart';", "import '../widgets/design_canvas.dart';"),
+    ("import '../widgets/ai_studio_sheet.dart';", "import '../widgets/design_canvas.dart';"),
+]
+for imp, marker in imports:
+    if imp not in w:
+        w = w.replace(marker, marker + "\n" + imp, 1)
 
-if 'Future<void> _remainingToolsSheet()' not in w:
-    marker = """  Future<void> _aiStudioSheet() async {
+tool = "        _mainTool(Icons.apps_rounded, 'Studio', _remainingToolsSheet),\n"
+needle = "        _mainTool(Icons.tune_rounded, 'Design', _designSheet),"
+if tool.strip() not in w:
+    if needle not in w:
+        raise SystemExit('main toolbar anchor missing')
+    w = w.replace(needle, needle + "\n" + tool, 1)
+
+ai_method = '''  Future<void> _aiStudioSheet() async {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -75,10 +80,16 @@ if 'Future<void> _remainingToolsSheet()' not in w:
     );
   }
 
-  Future<void> _addText() async {"""
-    if marker not in w:
-        raise SystemExit('workspace insertion marker missing')
-    method = """  Future<void> _remainingToolsSheet() async {
+'''
+if 'Future<void> _aiStudioSheet()' not in w:
+    w = insert_once(
+        w,
+        '  Future<void> _addText() async {',
+        ai_method,
+        'AI Studio method',
+    )
+
+remaining_method = '''  Future<void> _remainingToolsSheet() async {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -119,7 +130,16 @@ if 'Future<void> _remainingToolsSheet()' not in w:
     );
   }
 
-  Future<(int, int)?> _tableSizeDialog() async {
+'''
+if 'Future<void> _remainingToolsSheet()' not in w:
+    w = insert_once(
+        w,
+        '  Future<void> _addText() async {',
+        remaining_method,
+        'Studio tool hub method',
+    )
+
+table_method = '''  Future<(int, int)?> _tableSizeDialog() async {
     var rows = 3;
     var cols = 3;
     return showDialog<(int, int)>(
@@ -180,8 +200,14 @@ if 'Future<void> _remainingToolsSheet()' not in w:
     );
   }
 
-"""
-    w = w.replace(marker, method + marker, 1)
+'''
+if 'Future<(int, int)?> _tableSizeDialog()' not in w:
+    w = insert_once(
+        w,
+        '  Future<void> _addText() async {',
+        table_method,
+        'table dialog method',
+    )
 
 W.write_text(w, encoding='utf-8')
 print('Remaining Studio tool hub applied.')
