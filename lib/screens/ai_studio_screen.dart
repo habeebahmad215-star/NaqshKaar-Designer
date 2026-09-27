@@ -129,7 +129,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
   }
 
   Widget _hero() => Container(
-    margin: const EdgeInsets.only(bottom: 22), padding: const EdgeInsets.all(20),
+    margin: const EdgeInsets.only(bottom: 22),
     decoration: BoxDecoration(
       borderRadius: BorderRadius.circular(26),
       gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight,
