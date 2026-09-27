@@ -31,59 +31,72 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     {'title': 'YouTube Thumbnail', 'icon': '▶'},
   ];
 
-  @override void dispose() { _prompt.dispose(); super.dispose(); }
+  @override void dispose() { _prompt.dispose(); _ai.dispose(); super.dispose(); }
 
   Future<void> _generate() async {
-    if (_prompt.text.trim().isEmpty) {
+    final prompt = _prompt.text.trim();
+    if (prompt.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please describe your design first.')));
       return;
     }
-    setState(() { _generating = true; _generated = false; _status = 'Generating…'; });
+    setState(() { _generating = true; _generated = false; _status = 'Generating with AI…'; });
     try {
-      final plan = await _ai.generate(prompt: _prompt.text.trim(), style: _style, ratio: _ratio);
+      final plan = await _ai.generate(prompt: prompt, style: _style, ratio: _ratio);
       if (!mounted) return;
       setState(() {
         _plan = plan;
         _generating = false;
-        _generated = true;
+        _generated = plan.imageBytes != null;
         _status = plan.providerMessage ?? 'Generated';
       });
     } catch (error) {
       if (!mounted) return;
-      setState(() { _generating = false; _status = 'Provider unavailable'; });
+      setState(() { _generating = false; _status = 'AI unavailable'; });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('AI provider error: $error')),
+        SnackBar(content: Text('AI generation failed: $error')),
       );
     }
   }
 
   void _useInCanvas() {
+    final bytes = _plan?.imageBytes;
+    if (bytes == null) return;
     final size = switch (_ratio) {
       '4:5' => const CanvasSize(1080, 1350),
       '16:9' => const CanvasSize(1280, 720),
       '9:16' => const CanvasSize(1080, 1920),
       _ => const CanvasSize(1080, 1080),
     };
+    final headline = _prompt.text.trim();
     final project = ProjectModel(
-      id: 'ai_${DateTime.now().microsecondsSinceEpoch}',
-      name: 'AI Design — ${_prompt.text.trim().split('\n').first}',
+      id: 'ai_' + DateTime.now().microsecondsSinceEpoch.toString(),
+      name: 'AI Design — ' + headline.split('\n').first,
       pages: [
         DesignPage(
           title: 'AI Generated',
           size: size,
-          background: Color((_plan?.gradient.isNotEmpty ?? false) ? _plan!.gradient.first : 0xFF10172D),
+          background: const Color(0xFF10172D),
           elements: [
+            DesignElement(
+              id: 'ai_artwork',
+              kind: ElementKind.image,
+              x: 0, y: 0, width: size.width, height: size.height,
+              imageBytes: bytes,
+            ),
             DesignElement(
               id: 'ai_heading',
               kind: ElementKind.text,
-              x: size.width * .08, y: size.height * .31,
-              width: size.width * .84, height: size.height * .22,
-              text: _prompt.text.trim(),
+              x: size.width * .08, y: size.height * .30,
+              width: size.width * .84, height: size.height * .25,
+              text: headline,
               fontSize: size.width > 1100 ? 78 : 64,
               colorValue: Colors.white.toARGB32(),
               fontFamily: 'JameelNooriNastaleeq',
               bold: true, textAlign: TextAlign.center,
               textDirection: TextDirection.rtl,
+              shadowColorValue: Colors.black54.toARGB32(),
+              shadowBlur: 14,
+              shadowOffsetY: 4,
             ),
             DesignElement(
               id: 'ai_accent',
@@ -248,7 +261,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       Row(children: [
         const Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A), size: 19),
         const SizedBox(width: 7),
-        Text('Design prepared • $_status', style: const TextStyle(fontWeight: FontWeight.w900, color: _ink)),
+        Text('AI design ready • $_status', style: const TextStyle(fontWeight: FontWeight.w900, color: _ink)),
       ]),
       const SizedBox(height: 12),
       AspectRatio(
@@ -257,11 +270,12 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
           decoration: BoxDecoration(borderRadius: BorderRadius.circular(17),
             gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight,
               colors: [Color(0xFF10172D), Color(0xFF292052), Color(0xFF4C1D95)])),
-          child: Center(child: Padding(
-            padding: const EdgeInsets.all(22),
-            child: Text(_prompt.text.trim(), textDirection: TextDirection.rtl, textAlign: TextAlign.center,
-              style: const TextStyle(fontFamily: 'JameelNooriNastaleeq', fontSize: 27, height: 1.25, color: Colors.white, fontWeight: FontWeight.w700)),
-          )),
+          child: _plan?.imageBytes == null
+              ? const Center(child: CircularProgressIndicator())
+              : ClipRRect(
+                  borderRadius: BorderRadius.circular(17),
+                  child: Image.memory(_plan!.imageBytes!, fit: BoxFit.cover),
+                ),
         ),
       ),
       const SizedBox(height: 12),
@@ -281,7 +295,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('AI Studio', style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900)),
           SizedBox(height: 8),
-          Text('The studio is provider-ready. A production AI provider should be connected through a secure server-side endpoint; secret API keys must not be shipped inside the Android app.',
+          Text('AI is connected through the secure server gateway. Your prompt generates real artwork, then you can open it in the editable NaqshKaar canvas.',
             style: TextStyle(fontSize: 13, height: 1.45, color: _muted)),
         ]),
       )),
