@@ -143,7 +143,7 @@ async function route(path, body) {
   throw error;
 }
 
-const server = http.createServer(async (req, res) => {
+export async function handler(req, res) {
   if (req.method === "OPTIONS") {
     res.writeHead(204, { "access-control-allow-origin": "*", "access-control-allow-methods": "POST,GET,OPTIONS", "access-control-allow-headers": "content-type,authorization" });
     return res.end();
@@ -155,6 +155,10 @@ const server = http.createServer(async (req, res) => {
   } catch (error) {
     json(res, error.status || 500, { error: String(error.message || error) });
   }
-});
+}
 
-server.listen(PORT, () => console.log(`NaqshKaar AI gateway listening on :${PORT}`));
+if (process.env.VERCEL !== "1") {
+  const server = http.createServer(handler);
+  server.listen(PORT, () => console.log(`NaqshKaar AI gateway listening on :${PORT}`));
+}
+
