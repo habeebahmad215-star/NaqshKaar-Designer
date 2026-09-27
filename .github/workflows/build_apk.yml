@@ -169,9 +169,13 @@ jobs:
       - name: Analyze
         run: flutter analyze
       - name: Build APK
-        run: flutter build apk --release
+        env:
+          AI_BASE_URL: ${{ secrets.AI_BASE_URL }}
+        run: flutter build apk --release --dart-define=AI_BASE_URL="$AI_BASE_URL"
       - name: Build Play Store AAB
-        run: flutter build appbundle --release
+        env:
+          AI_BASE_URL: ${{ secrets.AI_BASE_URL }}
+        run: flutter build appbundle --release --dart-define=AI_BASE_URL="$AI_BASE_URL"
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
