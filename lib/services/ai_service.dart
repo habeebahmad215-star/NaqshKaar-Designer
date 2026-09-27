@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
+
+import 'ai_http_clients.dart';
 import 'package:http/http.dart' as http;
 
 /// Backend-first AI gateway. Provider API keys stay on the server.
@@ -14,15 +16,12 @@ class AiService {
         _baseUrl = _resolveBaseUrl(baseUrl),
         _apiKey = apiKey ?? const String.fromEnvironment('AI_API_KEY');
 
-  final http.Client _client;
   final String _baseUrl;
+  final List<http.Client> _clients;
   final String _apiKey;
 
-  static const List<String> _nativeGatewayFallbacks = <String>[
-    'https://naqsh-kaar-designer-9g3r.vercel.app/api',
-    'https://naqsh-kaar-designer-rho.vercel.app/api',
-    'https://naqsh-kaar-designer.vercel.app/api',
-  ];
+  static const String _productionGateway =
+      'https://naqsh-kaar-designer-9g3r.vercel.app/api';
 
   static String _resolveBaseUrl(String? baseUrl) {
     final explicit =
@@ -30,9 +29,7 @@ class AiService {
     if (explicit.isNotEmpty) {
       return explicit.replaceFirst(RegExp(r'/+$'), '');
     }
-    return kIsWeb
-        ? '/api'
-        : _nativeGatewayFallbacks.first;
+    return kIsWeb ? '/api' : _productionGateway;
   }
 
   bool get configured => _baseUrl.isNotEmpty;
@@ -102,18 +99,13 @@ class AiService {
       throw StateError('AI gateway is not configured.');
     }
 
-    final urls = <String>[_baseUrl];
-    if (!kIsWeb && _baseUrl == _nativeGatewayFallbacks.first) {
-      urls.addAll(_nativeGatewayFallbacks.skip(1));
-    }
-
     Object? lastError;
     http.Response? response;
-    for (final base in urls) {
+    for (final client in _clients) {
       try {
-        response = await _client
+        response = await client
             .post(
-              Uri.parse('$base$path'),
+              Uri.parse('$_baseUrl$path'),
               headers: _headers,
               body: jsonEncode(body),
             )
@@ -163,7 +155,11 @@ class AiService {
     return base64Decode(normalized);
   }
 
-  void dispose() => _client.close();
+  void dispose() {
+    for (final client in _clients) {
+      client.close();
+    }
+  }
 }
 
 String aiConfigurationHint() => kDebugMode
