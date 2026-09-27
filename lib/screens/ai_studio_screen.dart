@@ -109,8 +109,9 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
         actions: [IconButton(tooltip: 'AI settings', onPressed: _showInfo, icon: const Icon(Icons.tune_rounded))],
       ),
       body: SafeArea(
-        child: CustomScrollView(
+        child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 28),
+          child: CustomScrollView(
           slivers: [
             SliverToBoxAdapter(child: _hero()),
             SliverToBoxAdapter(child: _section('Describe your design', 'Urdu, Hindi or English — write naturally.')),
@@ -123,6 +124,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
             SliverToBoxAdapter(child: _generateButton()),
             if (_generated) SliverToBoxAdapter(child: _resultCard()),
           ],
+        ),
         ),
       ),
     );
