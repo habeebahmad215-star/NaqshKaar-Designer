@@ -4,7 +4,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'gallery_saver.dart' if (dart.library.html) 'gallery_saver_web.dart';
+import 'gallery_saver.dart' if (dart.library.js_interop) 'gallery_saver_web.dart';
 import 'package:image/image.dart' as img;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
