@@ -37,10 +37,11 @@ class AiService {
     return value.trim();
   }
 
-  Future<Uint8List> generateImage(String prompt, {String? style}) async {
+  Future<Uint8List> generateImage(String prompt, {String? style, String? size}) async {
     return _decodeImage(await _post('/image', {
       'prompt': prompt,
       if (style != null && style.isNotEmpty) 'style': style,
+      if (size != null && size.isNotEmpty) 'size': size,
     }));
   }
 
