@@ -168,14 +168,16 @@ jobs:
         run: dart format lib
       - name: Analyze
         run: flutter analyze
+      - name: Verify production AI gateway
+        run: |
+          set -e
+          body="$(curl -fsSL --retry 3 --connect-timeout 10 --max-time 30 https://naqsh-kaar-designer-9g3r.vercel.app/api/health)"
+          echo "$body"
+          echo "$body" | grep -q '"ok":true'
       - name: Build APK
-        env:
-          AI_BASE_URL: ${{ secrets.AI_BASE_URL }}
-        run: flutter build apk --release --dart-define=AI_BASE_URL="$AI_BASE_URL"
+        run: flutter build apk --release --dart-define=AI_BASE_URL="https://naqsh-kaar-designer-9g3r.vercel.app/api"
       - name: Build Play Store AAB
-        env:
-          AI_BASE_URL: ${{ secrets.AI_BASE_URL }}
-        run: flutter build appbundle --release --dart-define=AI_BASE_URL="$AI_BASE_URL"
+        run: flutter build appbundle --release --dart-define=AI_BASE_URL="https://naqsh-kaar-designer-9g3r.vercel.app/api"
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
