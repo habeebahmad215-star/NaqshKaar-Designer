@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/design_models.dart';
+import '../services/ai_design_service.dart';
 import 'workspace_screen.dart';
 
 class AiStudioScreen extends StatefulWidget {
@@ -18,6 +19,9 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
   String _ratio = '1:1';
   bool _generating = false;
   bool _generated = false;
+  String _status = 'Ready';
+  AiDesignPlan? _plan;
+  final AiDesignService _ai = AiDesignService();
 
   final List<String> _styles = const ['Premium','Islamic','Minimal','Luxury','School','YouTube'];
   final List<Map<String, String>> _presets = const [
@@ -29,16 +33,28 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
 
   @override void dispose() { _prompt.dispose(); super.dispose(); }
 
-  void _generate() {
+  Future<void> _generate() async {
     if (_prompt.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please describe your design first.')));
       return;
     }
-    setState(() { _generating = true; _generated = false; });
-    Future<void>.delayed(const Duration(milliseconds: 650), () {
+    setState(() { _generating = true; _generated = false; _status = 'Generating…'; });
+    try {
+      final plan = await _ai.generate(prompt: _prompt.text.trim(), style: _style, ratio: _ratio);
       if (!mounted) return;
-      setState(() { _generating = false; _generated = true; });
-    });
+      setState(() {
+        _plan = plan;
+        _generating = false;
+        _generated = true;
+        _status = plan.providerMessage ?? 'Generated';
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() { _generating = false; _status = 'Provider unavailable'; });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('AI provider error: $error')),
+      );
+    }
   }
 
   void _useInCanvas() {
@@ -55,7 +71,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
         DesignPage(
           title: 'AI Generated',
           size: size,
-          background: const Color(0xFF10172D),
+          background: Color((_plan?.gradient.isNotEmpty ?? false) ? _plan!.gradient.first : 0xFF10172D),
           elements: [
             DesignElement(
               id: 'ai_heading',
@@ -230,7 +246,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       const Row(children: [
         Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A), size: 19),
         SizedBox(width: 7),
-        Text('Design prepared', style: TextStyle(fontWeight: FontWeight.w900, color: _ink)),
+        Text('Design prepared • $_status', style: TextStyle(fontWeight: FontWeight.w900, color: _ink)),
       ]),
       const SizedBox(height: 12),
       AspectRatio(
