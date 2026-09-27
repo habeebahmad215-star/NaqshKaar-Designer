@@ -4,7 +4,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:gal/gal.dart';
+import 'gallery_saver.dart';
 import 'package:image/image.dart' as img;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -43,20 +43,9 @@ class ExportService {
     return Uint8List.fromList(img.encodeJpg(decoded, quality: quality));
   }
 
-  Future<void> _ensureGalleryAccess() async {
-    if (await Gal.hasAccess()) return;
-    if (!await Gal.requestAccess()) throw StateError('Gallery permission was denied.');
-  }
+  Future<void> savePng(Uint8List bytes, String name) => saveImageBytes(bytes, name);
 
-  Future<void> savePng(Uint8List bytes, String name) async {
-    await _ensureGalleryAccess();
-    await Gal.putImageBytes(bytes, name: name);
-  }
-
-  Future<void> saveJpeg(Uint8List bytes, String name) async {
-    await _ensureGalleryAccess();
-    await Gal.putImageBytes(bytes, name: name);
-  }
+  Future<void> saveJpeg(Uint8List bytes, String name) => saveImageBytes(bytes, name);
 
   Future<void> exportPng(DesignPage page, GlobalKey key) async {
     final bytes = await capturePng(key, page.size.width, page.size.width);
