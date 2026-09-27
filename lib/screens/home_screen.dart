@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/project_repository.dart';
 import '../models/design_models.dart';
 import 'workspace_screen.dart';
+import 'ai_studio_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -234,6 +235,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (title == 'Images') {
       await _create(const CanvasSize(1200, 800));
+      return;
+    }
+
+    if (title == 'AI Design') {
+      await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const AiStudioScreen()));
       return;
     }
 
