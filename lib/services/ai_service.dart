@@ -26,7 +26,7 @@ class AiService {
     }
     return kIsWeb
         ? '/api'
-        : 'https://naqsh-kaar-designer-rho.vercel.app/api';
+        : 'https://naqsh-kaar-designer.vercel.app/api';
   }
 
   bool get configured => _baseUrl.isNotEmpty;
