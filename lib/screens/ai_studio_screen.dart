@@ -24,7 +24,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
   final AiDesignService _ai = AiDesignService();
 
   final List<String> _styles = const ['Premium','Islamic','Minimal','Luxury','School','YouTube'];
-  final List<Map<String, String>> _presets = const [
+  final List<Map<String, String>> _presetItems = const [
     {'title': 'Islamic Poster', 'icon': '☪'},
     {'title': 'School Admission', 'icon': '🎓'},
     {'title': 'Naat Invitation', 'icon': '✦'},
@@ -168,10 +168,10 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     child: TextField(
       controller: _prompt, minLines: 4, maxLines: 7,
       textDirection: TextDirection.rtl, textAlign: TextAlign.right,
-      decoration: const InputDecoration(
+      decoration: InputDecoration(
         hintText: 'مثلاً: مدرسہ کے داخلہ کے لیے خوبصورت پوسٹر...',
         hintTextDirection: TextDirection.rtl,
-        prefixIcon: Padding(padding: EdgeInsets.only(left: 12, top: 14), child: Icon(Icons.edit_note_rounded, color: _purple)),
+        prefixIcon: const Padding(padding: EdgeInsets.only(left: 12, top: 14), child: Icon(Icons.edit_note_rounded, color: _purple)),
         border: InputBorder.none, fillColor: Colors.transparent,
       ),
     ),
@@ -180,10 +180,10 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
   Widget _presets() => SizedBox(
     height: 76,
     child: ListView.separated(
-      scrollDirection: Axis.horizontal, itemCount: _presets.length,
+      scrollDirection: Axis.horizontal, itemCount: _presetItems.length,
       separatorBuilder: (_, __) => const SizedBox(width: 9),
       itemBuilder: (_, i) {
-        final item = _presets[i];
+        final item = _presetItems[i];
         return InkWell(
           borderRadius: BorderRadius.circular(17),
           onTap: () => setState(() => _prompt.text = switch (item['title']) {
@@ -243,10 +243,10 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     margin: const EdgeInsets.only(top: 18), padding: const EdgeInsets.all(14),
     decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22), border: Border.all(color: const Color(0xFFE5E7EB))),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Row(children: [
-        Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A), size: 19),
-        SizedBox(width: 7),
-        Text('Design prepared • $_status', style: TextStyle(fontWeight: FontWeight.w900, color: _ink)),
+      Row(children: [
+        const Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A), size: 19),
+        const SizedBox(width: 7),
+        Text('Design prepared • $_status', style: const TextStyle(fontWeight: FontWeight.w900, color: _ink)),
       ]),
       const SizedBox(height: 12),
       AspectRatio(
