@@ -1,0 +1,9 @@
+{
+  "name": "NaqshKaar Designer",
+  "short_name": "NaqshKaar",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "description": "Professional Urdu Graphic Design App."
+}
