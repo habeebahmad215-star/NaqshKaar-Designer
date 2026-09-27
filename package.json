@@ -1,0 +1,8 @@
+{
+  "name": "naqshkaar-designer",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "24.x"
+  }
+}
