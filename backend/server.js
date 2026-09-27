@@ -14,6 +14,9 @@ function json(res, status, body) {
   res.writeHead(status, {
     "content-type": "application/json; charset=utf-8",
     "cache-control": "no-store",
+    "access-control-allow-origin": "*",
+    "access-control-allow-methods": "POST,GET,OPTIONS",
+    "access-control-allow-headers": "content-type,authorization",
   });
   res.end(JSON.stringify(body));
 }
@@ -107,8 +110,8 @@ async function generateImage(body) {
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       model: IMAGE_MODEL,
-      prompt: `${style} professional Urdu graphic design. ${prompt}`,
-      size: body.size || "1024x1024",
+      prompt: `${style} professional graphic design for NaqshKaar Designer. ${prompt}`,
+      size: ["1024x1024", "1024x1536", "1536x1024"].includes(body.size) ? body.size : "1024x1024",
     }),
   });
   return { image_base64: imageBase64(data) };
@@ -150,7 +153,9 @@ export async function handler(req, res) {
   }
   try {
     const body = req.method === "POST" ? await readBody(req) : {};
-    const result = await route(new URL(req.url, "http://localhost").pathname, body);
+    const rawPath = new URL(req.url, "http://localhost").pathname;
+    const path = rawPath.startsWith("/api/") ? rawPath.slice(4) : rawPath;
+    const result = await route(path || "/", body);
     json(res, 200, result);
   } catch (error) {
     json(res, error.status || 500, { error: String(error.message || error) });
