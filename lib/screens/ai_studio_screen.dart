@@ -171,7 +171,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       decoration: InputDecoration(
         hintText: 'مثلاً: مدرسہ کے داخلہ کے لیے خوبصورت پوسٹر...',
         hintTextDirection: TextDirection.rtl,
-        prefixIcon: const Padding(padding: EdgeInsets.only(left: 12, top: 14), child: Icon(Icons.edit_note_rounded, color: _purple)),
+        prefixIcon: const Icon(Icons.edit_note_rounded, color: _purple),
         border: InputBorder.none, fillColor: Colors.transparent,
       ),
     ),
