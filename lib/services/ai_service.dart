@@ -18,6 +18,12 @@ class AiService {
   final String _baseUrl;
   final String _apiKey;
 
+  static const List<String> _nativeGatewayFallbacks = <String>[
+    'https://naqsh-kaar-designer-9g3r.vercel.app/api',
+    'https://naqsh-kaar-designer-rho.vercel.app/api',
+    'https://naqsh-kaar-designer.vercel.app/api',
+  ];
+
   static String _resolveBaseUrl(String? baseUrl) {
     final explicit =
         (baseUrl ?? const String.fromEnvironment('AI_BASE_URL')).trim();
@@ -26,7 +32,7 @@ class AiService {
     }
     return kIsWeb
         ? '/api'
-        : 'https://naqsh-kaar-designer.vercel.app/api';
+        : _nativeGatewayFallbacks.first;
   }
 
   bool get configured => _baseUrl.isNotEmpty;
@@ -96,13 +102,43 @@ class AiService {
       throw StateError('AI gateway is not configured.');
     }
 
-    final response = await _client
-        .post(
-          Uri.parse('$_baseUrl$path'),
-          headers: _headers,
-          body: jsonEncode(body),
-        )
-        .timeout(const Duration(seconds: 90));
+    final urls = <String>[_baseUrl];
+    if (!kIsWeb && _baseUrl == _nativeGatewayFallbacks.first) {
+      urls.addAll(_nativeGatewayFallbacks.skip(1));
+    }
+
+    Object? lastError;
+    http.Response? response;
+    for (final base in urls) {
+      try {
+        response = await _client
+            .post(
+              Uri.parse('$base$path'),
+              headers: _headers,
+              body: jsonEncode(body),
+            )
+            .timeout(const Duration(seconds: 90));
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          break;
+        }
+        if (response.statusCode >= 400 && response.statusCode < 600) {
+          throw HttpException(
+            'AI request failed (${response.statusCode}): ${response.body}',
+          );
+        }
+      } catch (error) {
+        lastError = error;
+        response = null;
+        if (kIsWeb) rethrow;
+      }
+    }
+
+    if (response == null) {
+      throw HttpException(
+        'AI gateway could not be reached. Network/DNS error: $lastError',
+      );
+    }
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw HttpException(
