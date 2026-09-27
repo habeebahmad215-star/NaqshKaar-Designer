@@ -1,14 +1,20 @@
-import 'dart:html' as html;
+import 'dart:js_interop';
 import 'dart:typed_data';
 
+import 'package:web/web.dart';
+
 Future<void> saveImageBytes(Uint8List bytes, String name) async {
-  final blob = html.Blob(<dynamic>[bytes], 'application/octet-stream');
-  final url = html.Url.createObjectUrlFromBlob(blob);
-  final anchor = html.AnchorElement(href: url)
+  final blob = Blob(
+    <JSAny>[bytes.toJS].toJS,
+    BlobPropertyBag(type: 'application/octet-stream'),
+  );
+  final url = URL.createObjectURL(blob);
+  final anchor = HTMLAnchorElement()
+    ..href = url
     ..download = name
     ..style.display = 'none';
-  html.document.body?.children.add(anchor);
+  document.body?.append(anchor);
   anchor.click();
   anchor.remove();
-  html.Url.revokeObjectUrl(url);
+  URL.revokeObjectURL(url);
 }
