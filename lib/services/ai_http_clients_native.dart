@@ -27,23 +27,22 @@ List<http.Client> createPlatformAiClients() {
 
   for (final ip in ips) {
     final HttpClient client = HttpClient();
-    client
-      ..connectionTimeout = const Duration(seconds: 8)
-      ..idleTimeout = const Duration(seconds: 15)
-      ..findProxy = (Uri _) => 'DIRECT'
-      ..connectionFactory = (
-        Uri uri,
-        String? proxyHost,
-        int? proxyPort,
-      ) {
-        if (proxyHost != null || proxyPort != null) {
-          return Socket.startConnect(uri.host, uri.port);
-        }
-        return Socket.startConnect(
-          InternetAddress(ip, type: InternetAddressType.IPv4),
-          uri.port,
-        );
-      };
+    client.connectionTimeout = const Duration(seconds: 8);
+    client.idleTimeout = const Duration(seconds: 15);
+    client.findProxy = (Uri _) => 'DIRECT';
+    client.connectionFactory = (
+      Uri uri,
+      String? proxyHost,
+      int? proxyPort,
+    ) {
+      if (proxyHost != null || proxyPort != null) {
+        return Socket.startConnect(uri.host, uri.port);
+      }
+      return Socket.startConnect(
+        InternetAddress(ip, type: InternetAddressType.IPv4),
+        uri.port,
+      );
+    };
     clients.add(IOClient(client));
   }
 
