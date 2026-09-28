@@ -28,9 +28,9 @@ List<http.Client> createPlatformAiClients() {
   for (final ip in ips) {
     final client = HttpClient()
       ..connectionTimeout = const Duration(seconds: 8)
-      ..idleTimeout = const Duration(seconds: 15)
-      ..findProxy = (Uri _) => 'DIRECT'
-      ..connectionFactory = (
+      ..idleTimeout = const Duration(seconds: 15);
+    client.findProxy = (Uri _) => 'DIRECT';
+    client.connectionFactory = (
         Uri uri,
         String? proxyHost,
         int? proxyPort,
