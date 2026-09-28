@@ -1,4 +1,5 @@
 name: Build NaqshKaar Designer
+# CI trigger: rebuild Android artifacts on main.
 
 on:
   workflow_dispatch:
