@@ -12,7 +12,7 @@ class AiService {
     http.Client? client,
     String? baseUrl,
     String? apiKey,
-  })  : _client = client ?? http.Client(),
+  })  : _clients = client != null ? <http.Client>[client] : createAiClients(),
         _baseUrl = _resolveBaseUrl(baseUrl),
         _apiKey = apiKey ?? const String.fromEnvironment('AI_API_KEY');
 
