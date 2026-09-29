@@ -179,17 +179,19 @@ jobs:
         run: |
           set -e
           url="https://naqsh-kaar-designer-9g3r.vercel.app/api/diagnostics"
-          for attempt in $(seq 1 12); do
-            echo "AI diagnostics attempt $attempt/12"
-            if body="$(curl -fsSL --connect-timeout 10 --max-time 60 "$url")"; then
-              echo "$body"
-              echo "$body" | grep -q '"ok":true' && exit 0
-            else
-              echo "Diagnostics endpoint not ready yet; waiting for Vercel deployment..."
+          for attempt in $(seq 1 18); do
+            echo "AI diagnostics attempt $attempt/18"
+            status="$(curl -sS -o /tmp/ai-diagnostics.json -w '%{http_code}' --connect-timeout 10 --max-time 60 "$url" || true)"
+            cat /tmp/ai-diagnostics.json || true
+            if [ "$status" = "200" ] && grep -q '"ok":true' /tmp/ai-diagnostics.json; then
+              echo "AI image model access confirmed."
+              exit 0
             fi
+            echo "Diagnostics status: $status; waiting for Vercel deployment/configuration..."
             sleep 10
           done
-          echo "AI diagnostics endpoint did not become ready."
+          echo "AI diagnostics failed. Final response:"
+          cat /tmp/ai-diagnostics.json || true
           exit 1
       - name: Build APK
         run: flutter build apk --release --dart-define=AI_BASE_URL="https://naqsh-kaar-designer-9g3r.vercel.app/api"
