@@ -178,9 +178,19 @@ jobs:
       - name: Verify OpenAI image model access
         run: |
           set -e
-          body="$(curl -fsSL --retry 2 --connect-timeout 10 --max-time 60 https://naqsh-kaar-designer-9g3r.vercel.app/api/diagnostics)"
-          echo "$body"
-          echo "$body" | grep -q '"ok":true'
+          url="https://naqsh-kaar-designer-9g3r.vercel.app/api/diagnostics"
+          for attempt in $(seq 1 12); do
+            echo "AI diagnostics attempt $attempt/12"
+            if body="$(curl -fsSL --connect-timeout 10 --max-time 60 "$url")"; then
+              echo "$body"
+              echo "$body" | grep -q '"ok":true' && exit 0
+            else
+              echo "Diagnostics endpoint not ready yet; waiting for Vercel deployment..."
+            fi
+            sleep 10
+          done
+          echo "AI diagnostics endpoint did not become ready."
+          exit 1
       - name: Build APK
         run: flutter build apk --release --dart-define=AI_BASE_URL="https://naqsh-kaar-designer-9g3r.vercel.app/api"
       - name: Build Play Store AAB
