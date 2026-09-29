@@ -5,6 +5,7 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const TEXT_MODEL = process.env.OPENAI_TEXT_MODEL || "gpt-5.6-luna";
 const IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL || "gpt-image-2";
 const MAX_BODY_BYTES = 12 * 1024 * 1024;
+const OPENAI_TIMEOUT_MS = 110_000;
 
 if (!OPENAI_API_KEY) {
   console.warn("OPENAI_API_KEY is not configured.");
@@ -47,21 +48,33 @@ function readBody(req) {
 
 async function openai(path, options = {}) {
   if (!OPENAI_API_KEY) throw new Error("AI gateway is not configured.");
-  const response = await fetch("https://api.openai.com" + path, {
-    ...options,
-    headers: {
-      authorization: `Bearer ${OPENAI_API_KEY}`,
-      ...(options.headers || {}),
-    },
-  });
-  const text = await response.text();
-  let data;
-  try { data = JSON.parse(text); } catch { data = { raw: text }; }
-  if (!response.ok) {
-    const message = data?.error?.message || `OpenAI request failed (${response.status}).`;
-    throw new Error(message);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), OPENAI_TIMEOUT_MS);
+  try {
+    const response = await fetch("https://api.openai.com" + path, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        authorization: `Bearer ${OPENAI_API_KEY}`,
+        ...(options.headers || {}),
+      },
+    });
+    const text = await response.text();
+    let data;
+    try { data = JSON.parse(text); } catch { data = { raw: text }; }
+    if (!response.ok) {
+      const message = data?.error?.message || `OpenAI request failed (${response.status}).`;
+      throw new Error(message);
+    }
+    return data;
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw new Error("AI provider timed out. Please try again.");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
   }
-  return data;
 }
 
 function responseText(data) {
@@ -134,8 +147,18 @@ async function editImage(body, instruction) {
   return { image_base64: imageBase64(data) };
 }
 
+async function diagnostics() {
+  const data = await openai(`/v1/models/${encodeURIComponent(IMAGE_MODEL)}`);
+  return {
+    ok: true,
+    provider: "openai",
+    image_model: data?.id || IMAGE_MODEL,
+  };
+}
+
 async function route(path, body) {
   if (path === "/health") return { ok: true, service: "naqshkaar-ai-gateway" };
+  if (path === "/diagnostics") return diagnostics();
   if (path === "/write") return writeText(body);
   if (path === "/image") return generateImage(body);
   if (path === "/remove-background") return editImage(body, "Remove the background completely and preserve the main subject cleanly with transparent background. Do not alter the subject.");
@@ -166,4 +189,3 @@ if (process.env.VERCEL !== "1") {
   const server = http.createServer(handler);
   server.listen(PORT, () => console.log(`NaqshKaar AI gateway listening on :${PORT}`));
 }
-
