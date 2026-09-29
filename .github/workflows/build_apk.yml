@@ -175,6 +175,12 @@ jobs:
           body="$(curl -fsSL --retry 3 --connect-timeout 10 --max-time 30 https://naqsh-kaar-designer-9g3r.vercel.app/api/health)"
           echo "$body"
           echo "$body" | grep -q '"ok":true'
+      - name: Verify OpenAI image model access
+        run: |
+          set -e
+          body="$(curl -fsSL --retry 2 --connect-timeout 10 --max-time 60 https://naqsh-kaar-designer-9g3r.vercel.app/api/diagnostics)"
+          echo "$body"
+          echo "$body" | grep -q '"ok":true'
       - name: Build APK
         run: flutter build apk --release --dart-define=AI_BASE_URL="https://naqsh-kaar-designer-9g3r.vercel.app/api"
       - name: Build Play Store AAB
