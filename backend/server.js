@@ -4,6 +4,7 @@ const PORT = Number(process.env.PORT || 3000);
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const TEXT_MODEL = process.env.OPENAI_TEXT_MODEL || "gpt-5.6-luna";
 const IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL || "gpt-image-2";
+const IMAGE_FALLBACK_MODELS = String(process.env.OPENAI_IMAGE_FALLBACK_MODELS || "gpt-image-1").split(",").map(value => value.trim()).filter(Boolean);
 const MAX_BODY_BYTES = 12 * 1024 * 1024;
 const OPENAI_TIMEOUT_MS = 110_000;
 
@@ -63,8 +64,11 @@ async function openai(path, options = {}) {
     let data;
     try { data = JSON.parse(text); } catch { data = { raw: text }; }
     if (!response.ok) {
-      const message = data?.error?.message || `OpenAI request failed (${response.status}).`;
-      throw new Error(message);
+      const error = new Error(data?.error?.message || `OpenAI request failed (${response.status}).`);
+      error.status = response.status;
+      error.code = data?.error?.code || null;
+      error.type = data?.error?.type || null;
+      throw error;
     }
     return data;
   } catch (error) {
@@ -115,6 +119,15 @@ async function writeText(body) {
 }
 
 async function generateImage(body) {
+  const models = [IMAGE_MODEL, ...IMAGE_FALLBACK_MODELS.filter(model => model !== IMAGE_MODEL)];
+  let lastError;
+  for (const model of models) {
+    try { return await generateImageWithModel(body, model); } catch (error) { lastError = error; }
+  }
+  throw lastError || new Error("No configured image model is available.");
+}
+
+async function generateImageWithModel(body, model) {
   const prompt = String(body.prompt || "").trim();
   const style = String(body.style || "Premium");
   if (!prompt) throw new Error("Prompt is required.");
@@ -122,7 +135,7 @@ async function generateImage(body) {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
-      model: IMAGE_MODEL,
+      model,
       prompt: `${style} professional graphic design for NaqshKaar Designer. ${prompt}`,
       size: ["1024x1024", "1024x1536", "1536x1024"].includes(body.size) ? body.size : "1024x1024",
     }),
@@ -148,12 +161,15 @@ async function editImage(body, instruction) {
 }
 
 async function diagnostics() {
-  const data = await openai(`/v1/models/${encodeURIComponent(IMAGE_MODEL)}`);
-  return {
-    ok: true,
-    provider: "openai",
-    image_model: data?.id || IMAGE_MODEL,
-  };
+  const models = [IMAGE_MODEL, ...IMAGE_FALLBACK_MODELS.filter(model => model !== IMAGE_MODEL)];
+  const available = [];
+  const unavailable = [];
+  for (const model of models) {
+    try { const data = await openai(`/v1/models/${encodeURIComponent(model)}`); available.push(data?.id || model); }
+    catch (error) { unavailable.push({ model, error: String(error.message || error), status: error?.status || null, code: error?.code || null }); }
+  }
+  if (!available.length) { const error = new Error("No configured OpenAI image model is accessible."); error.status = 503; error.details = { requested: models, unavailable }; throw error; }
+  return { ok: true, provider: "openai", image_model: available[0], fallback_models: available.slice(1), unavailable };
 }
 
 async function route(path, body) {
@@ -181,7 +197,7 @@ export async function handler(req, res) {
     const result = await route(path || "/", body);
     json(res, 200, result);
   } catch (error) {
-    json(res, error.status || 500, { error: String(error.message || error) });
+    json(res, error.status || 500, { error: String(error.message || error), ...(error.code ? { code: error.code } : {}), ...(error.type ? { type: error.type } : {}), ...(error.details ? { details: error.details } : {}) });
   }
 }
 
