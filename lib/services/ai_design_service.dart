@@ -42,7 +42,7 @@ class AiDesignService {
       title: prompt.trim(),
       style: style,
       gradient: const [0xFF10172D, 0xFF4C1D95],
-      providerMessage: 'OpenAI image generation',
+      providerMessage: 'Gemini AI artwork ready',
       imageBytes: bytes,
     );
   }
