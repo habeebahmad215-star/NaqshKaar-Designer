@@ -272,6 +272,25 @@ async function generateImage(body) {
   throw lastError || new Error("No configured AI image provider is available.");
 }
 
+
+async function geminiEdit(body, instruction) {
+  if (!GEMINI_API_KEY) throw new Error("Gemini API is not configured.");
+  const input=String(body.image_base64||"").replace(/^data:[^;]+;base64,/,"");
+  if (!input) throw new Error("image_base64 is required.");
+  const response=await fetch("https://generativelanguage.googleapis.com/v1beta/interactions",{
+    method:"POST",
+    headers:{"x-goog-api-key":GEMINI_API_KEY,"content-type":"application/json"},
+    body:JSON.stringify({
+      model:GEMINI_IMAGE_MODEL,
+      input:[{type:"text",text:instruction},{type:"image",mime_type:"image/png",data:input}],
+      response_format:{type:"image",mime_type:"image/png",image_size:String(process.env.GEMINI_IMAGE_SIZE||"2K").toUpperCase()}
+    })
+  });
+  const text=await response.text(); let data; try { data=JSON.parse(text); } catch { data={}; }
+  if(!response.ok) throw new Error(data?.error?.message || `Gemini edit failed (${response.status}).`);
+  return {image_base64:extractGeminiImage(data),provider:"gemini",model:GEMINI_IMAGE_MODEL};
+}
+
 async function editImage(body, instruction) {
   let lastError;
   if (GEMINI_API_KEY) {
