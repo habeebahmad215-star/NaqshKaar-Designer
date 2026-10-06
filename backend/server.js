@@ -2,6 +2,9 @@ import http from "node:http";
 
 const PORT = Number(process.env.PORT || 3000);
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_IMAGE_MODEL = process.env.GEMINI_IMAGE_MODEL || "gemini-3.1-flash-image";
+const GEMINI_PRO_IMAGE_MODEL = process.env.GEMINI_PRO_IMAGE_MODEL || "gemini-3-pro-image";
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 const GEMINI_IMAGE_MODEL = process.env.GEMINI_IMAGE_MODEL || "gemini-3.1-flash-image";
 const TEXT_MODEL = process.env.OPENAI_TEXT_MODEL || "gpt-5.6-luna";
@@ -164,6 +167,50 @@ async function writeText(body) {
   const text=responseText(data); if(!text) throw new Error("AI returned no text."); return {text};
 }
 
+
+
+function geminiAspect(size) {
+  if (size === "1536x1024") return "3:2";
+  if (size === "1024x1536") return "2:3";
+  return "1:1";
+}
+
+function extractGeminiImage(data) {
+  if (typeof data?.output_image?.data === "string") return data.output_image.data;
+  for (const item of Array.isArray(data?.outputs) ? data.outputs : []) {
+    if (typeof item?.image?.data === "string") return item.image.data;
+    if (typeof item?.output_image?.data === "string") return item.output_image.data;
+  }
+  throw new Error("Gemini returned no image data.");
+}
+
+async function geminiImage(body, model = GEMINI_IMAGE_MODEL) {
+  if (!GEMINI_API_KEY) throw new Error("Gemini API is not configured.");
+  const prompt = String(body.prompt || "").trim();
+  if (!prompt) throw new Error("Prompt is required.");
+  const style = String(body.style || "Premium");
+  const input = `${style} professional graphic design for NaqshKaar Designer. ${prompt}
+Create a polished production-ready visual with strong hierarchy, balanced spacing, premium lighting, crisp details and clean edges. Do not add fake logos, watermarks or gibberish text. Leave intentional space for editable headline text when appropriate.`;
+  const response = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
+    method: "POST",
+    headers: {"x-goog-api-key": GEMINI_API_KEY, "content-type": "application/json"},
+    body: JSON.stringify({
+      model,
+      input,
+      response_format: {
+        type: "image",
+        mime_type: "image/png",
+        aspect_ratio: geminiAspect(body.size),
+        image_size: String(process.env.GEMINI_IMAGE_SIZE || "2K").toUpperCase()
+      }
+    })
+  });
+  const text = await response.text();
+  let data; try { data = JSON.parse(text); } catch { data = {}; }
+  if (!response.ok) throw new Error(data?.error?.message || `Gemini request failed (${response.status}).`);
+  return {image_base64: extractGeminiImage(data), provider:"gemini", model};
+}
+
 function imageSize(size) {
   if (size === "1536x1024") return [1536,1024];
   if (size === "1024x1536") return [1024,1536];
@@ -196,6 +243,23 @@ async function generateImageWithModel(body, model) {
 }
 
 async function generateImage(body) {
+  if (GEMINI_API_KEY) {
+    try { return await geminiImage(body); } catch (error) {
+      console.warn("Gemini image generation failed:", error?.message || error);
+      if (GEMINI_PRO_IMAGE_MODEL !== GEMINI_IMAGE_MODEL) {
+        try { return await geminiImage(body, GEMINI_PRO_IMAGE_MODEL); } catch (error2) {
+          console.warn("Gemini Pro fallback failed:", error2?.message || error2);
+        }
+      }
+    }
+  }
+  if (OPENAI_API_KEY) {
+    const models=[IMAGE_MODEL,...IMAGE_FALLBACK_MODELS.filter(model=>model!==IMAGE_MODEL)]; let lastError;
+    for(const model of models) { try { return await generateImageWithModel(body,model); } catch(error) { lastError=error; } }
+    if (!FREE_IMAGE_FALLBACK) throw lastError || new Error("No configured image model is available.");
+  }
+  return generateFreeImage(body);
+}
   let lastError;
   if (GEMINI_API_KEY) {
     try { return await generateGeminiImage(body); } catch (error) { lastError = error; }
