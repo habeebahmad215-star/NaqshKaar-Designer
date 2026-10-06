@@ -53,7 +53,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       if (!mounted) return;
       setState(() { _generating = false; _status = 'AI unavailable'; });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('AI generation failed: $error')),
+        SnackBar(content: Text('AI generation failed. Please try again.')),
       );
     }
   }
@@ -135,6 +135,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
             SliverToBoxAdapter(child: _section('Canvas ratio', 'Optimized presets for social and print.')),
             SliverToBoxAdapter(child: _ratioChips()),
             SliverToBoxAdapter(child: _generateButton()),
+            if (_generating) SliverToBoxAdapter(child: _generationProgress()),
             if (_generated) SliverToBoxAdapter(child: _resultCard()),
           ],
         ),
@@ -188,6 +189,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
         hintTextDirection: TextDirection.rtl,
         prefixIcon: const Icon(Icons.edit_note_rounded, color: _purple),
         border: InputBorder.none, fillColor: Colors.transparent,
+        suffixIcon: IconButton(tooltip: 'Clear', onPressed: () => setState(_prompt.clear), icon: const Icon(Icons.close_rounded, color: _muted)),
       ),
     ),
   );
@@ -241,6 +243,18 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       }).toList()),
     );
   }
+
+  Widget _generationProgress() => Container(
+    margin: const EdgeInsets.only(top: 12),
+    padding: const EdgeInsets.all(13),
+    decoration: BoxDecoration(color: const Color(0xFFF1ECFF), borderRadius: BorderRadius.circular(16)),
+    child: const Row(children: [
+      SizedBox(width: 5),
+      Icon(Icons.auto_awesome_rounded, color: _purple, size: 18),
+      SizedBox(width: 9),
+      Expanded(child: Text('AI artwork create ho raha hai. Please wait…', style: TextStyle(fontSize: 11.5, color: _purple, fontWeight: FontWeight.w700))),
+    ]),
+  );
 
   Widget _generateButton() => SizedBox(
     width: double.infinity, height: 56,
