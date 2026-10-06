@@ -169,6 +169,13 @@ jobs:
         run: dart format lib
       - name: Analyze
         run: flutter analyze
+      - name: Verify Gemini secret
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          test -n "$GEMINI_API_KEY" || (echo "GEMINI_API_KEY GitHub Secret is missing." && exit 1)
+          echo "Gemini API secret is present (value hidden)."
+
       - name: Verify production AI gateway
         run: |
           set -e
