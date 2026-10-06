@@ -175,7 +175,19 @@ jobs:
           body="$(curl -fsSL --retry 3 --connect-timeout 10 --max-time 30 https://naqsh-kaar-designer-9g3r.vercel.app/api/health)"
           echo "$body"
           echo "$body" | grep -q '"ok":true'
-      - name: Verify OpenAI image model access
+      - name: Verify Gemini image API access
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          set -e
+          test -n "$GEMINI_API_KEY" || { echo "GEMINI_API_KEY GitHub secret is missing."; exit 1; }
+          response="$(curl -sS -w '\n%{http_code}' --connect-timeout 15 --max-time 60             -H "x-goog-api-key: $GEMINI_API_KEY"             "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image")"
+          body="$(printf '%s\n' "$response" | sed '$d')"
+          status="$(printf '%s\n' "$response" | tail -n 1)"
+          echo "$body" | sed -E 's/("displayName"|"name"|"description")[[:space:]]*:[[:space:]]*"[^"]*"/\1:"[redacted]"/g'
+          test "$status" = "200" || { echo "Gemini image model check failed with HTTP $status."; exit 1; }
+          echo "Gemini 3.1 Flash Image API access confirmed."
+      - name: Verify production AI gateway
         run: |
           set -e
           url="https://naqsh-kaar-designer-9g3r.vercel.app/api/diagnostics"
