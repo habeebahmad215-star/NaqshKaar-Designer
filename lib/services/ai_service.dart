@@ -19,6 +19,9 @@ class AiService {
   final String _baseUrl;
   final List<http.Client> _clients;
   final String _apiKey;
+  String _lastProvider = 'AI';
+
+  String get lastProvider => _lastProvider;
 
   static const String _productionGateway =
       'https://naqsh-kaar-designer-9g3r.vercel.app/api';
@@ -141,6 +144,13 @@ class AiService {
     final decoded = jsonDecode(response.body);
     if (decoded is! Map<String, dynamic>) {
       throw const FormatException('AI gateway returned invalid JSON.');
+    }
+    final provider = decoded['provider'];
+    final model = decoded['image_model'];
+    if (provider is String && provider.isNotEmpty) {
+      _lastProvider = model is String && model.isNotEmpty
+          ? '$provider • $model'
+          : provider;
     }
     return decoded;
   }
