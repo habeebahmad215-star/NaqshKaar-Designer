@@ -38,11 +38,10 @@ function promptFor(body) {
     "\n\nCreate a polished production-ready commercial composition with strong visual hierarchy, balanced spacing, premium lighting, depth, crisp details and clean edges. Use an elegant Urdu/Islamic/modern visual language when appropriate. Leave intentional clean space for editable headline text. Do not invent tiny unreadable paragraphs, fake logos, random gibberish or watermarks.";
 }
 
-async function generateGeminiImage(body) {
+async function requestGeminiImage(body, model) {
   const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   if (!key) throw new Error("Gemini API is not configured on the production server.");
 
-  const model = process.env.GEMINI_IMAGE_MODEL || "gemini-3.1-flash-image";
   const size = String(body && body.size || "1024x1024");
   const response = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
     method: "POST",
@@ -51,7 +50,7 @@ async function generateGeminiImage(body) {
       "content-type": "application/json"
     },
     body: JSON.stringify({
-      model: model,
+      model,
       input: promptFor(body),
       response_format: {
         type: "image",
@@ -66,8 +65,10 @@ async function generateGeminiImage(body) {
   let data;
   try {
     data = JSON.parse(text);
-  } catch (error) {
-    throw new Error("Gemini returned invalid JSON (HTTP " + response.status + ").");
+  } catch (_) {
+    const error = new Error("Gemini returned invalid JSON (HTTP " + response.status + ").");
+    error.status = response.status;
+    throw error;
   }
 
   if (!response.ok) {
@@ -84,46 +85,22 @@ async function generateGeminiImage(body) {
   };
 }
 
-async function generateFallbackImage(body) {
-  const prompt = promptFor(body);
-  const size = String(body && body.size || "1024x1024");
-  let width = 1024;
-  let height = 1024;
-  if (size === "1536x1024") { width = 1536; height = 1024; }
-  if (size === "1024x1536") { width = 1024; height = 1536; }
-
-  // The legacy Pollinations image endpoint is still the practical keyless
-  // fallback. Do not request nologo: anonymous requests can be rejected when
-  // asking for paid/no-logo output. Keep the request otherwise simple.
-  const url = "https://image.pollinations.ai/prompt/" +
-    encodeURIComponent(prompt) +
-    "?model=flux&width=" + width + "&height=" + height + "&safe=true";
-
-  const response = await fetch(url, {
-    headers: {"user-agent": "NaqshKaar-Designer/1.0"}
-  });
-  if (!response.ok) {
-    throw new Error("Fallback image provider failed (HTTP " + response.status + ").");
-  }
-  const type = response.headers.get("content-type") || "";
-  if (!type.startsWith("image/")) {
-    throw new Error("Fallback image provider returned a non-image response.");
-  }
-
-  return {
-    image_base64: Buffer.from(await response.arrayBuffer()).toString("base64"),
-    provider: "fallback-image",
-    image_model: "flux"
-  };
-}
-
 async function generateImage(body) {
-  try {
-    return await generateGeminiImage(body);
-  } catch (geminiError) {
-    console.error("Gemini image generation unavailable:", geminiError);
-    return await generateFallbackImage(body);
+  const primary = process.env.GEMINI_IMAGE_MODEL || "gemini-3.1-flash-image";
+  const models = [primary, "gemini-3.1-flash-lite-image"]
+    .filter((model, index, list) => model && list.indexOf(model) === index);
+
+  let lastError;
+  for (const model of models) {
+    try {
+      return await requestGeminiImage(body, model);
+    } catch (error) {
+      lastError = error;
+      console.error("Gemini image model unavailable:", model, error);
+    }
   }
+
+  throw lastError || new Error("No Gemini image model is available.");
 }
 
 export default async function apiHandler(req, res) {
@@ -152,6 +129,7 @@ export default async function apiHandler(req, res) {
         ok: Boolean(key),
         provider: "gemini",
         image_model: process.env.GEMINI_IMAGE_MODEL || "gemini-3.1-flash-image",
+        failover_model: "gemini-3.1-flash-lite-image",
         key_configured: Boolean(key)
       });
     }
@@ -166,7 +144,7 @@ export default async function apiHandler(req, res) {
     return send(res, 404, {error: "Not found."});
   } catch (error) {
     console.error("NaqshKaar API error:", error);
-    return send(res, 500, {
+    return send(res, Number(error && error.status) || 500, {
       error: String(error && error.message || error),
       runtime: process.version
     });
