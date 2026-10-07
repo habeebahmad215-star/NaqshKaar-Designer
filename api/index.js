@@ -38,13 +38,12 @@ function promptFor(body) {
     "\n\nCreate a polished production-ready commercial composition with strong visual hierarchy, balanced spacing, premium lighting, depth, crisp details and clean edges. Use an elegant Urdu/Islamic/modern visual language when appropriate. Leave intentional clean space for editable headline text. Do not invent tiny unreadable paragraphs, fake logos, random gibberish or watermarks.";
 }
 
-async function generateImage(body) {
+async function generateGeminiImage(body) {
   const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   if (!key) throw new Error("Gemini API is not configured on the production server.");
 
   const model = process.env.GEMINI_IMAGE_MODEL || "gemini-3.1-flash-image";
   const size = String(body && body.size || "1024x1024");
-
   const response = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
     method: "POST",
     headers: {
@@ -73,7 +72,9 @@ async function generateImage(body) {
 
   if (!response.ok) {
     const providerMessage = data && data.error && data.error.message;
-    throw new Error(providerMessage || "Gemini image request failed (HTTP " + response.status + ").");
+    const error = new Error(providerMessage || "Gemini image request failed (HTTP " + response.status + ").");
+    error.status = response.status;
+    throw error;
   }
 
   return {
@@ -81,6 +82,45 @@ async function generateImage(body) {
     provider: "gemini",
     image_model: model
   };
+}
+
+async function generateFallbackImage(body) {
+  const prompt = promptFor(body);
+  const size = String(body && body.size || "1024x1024");
+  let width = 1024;
+  let height = 1024;
+  if (size === "1536x1024") { width = 1536; height = 1024; }
+  if (size === "1024x1536") { width = 1024; height = 1536; }
+
+  const url = "https://image.pollinations.ai/prompt/" +
+    encodeURIComponent(prompt) +
+    "?model=flux&width=" + width + "&height=" + height + "&nologo=true&safe=true";
+
+  const response = await fetch(url, {
+    headers: {"user-agent": "NaqshKaar-Designer/1.0"}
+  });
+  if (!response.ok) {
+    throw new Error("Fallback image provider failed (HTTP " + response.status + ").");
+  }
+  const type = response.headers.get("content-type") || "";
+  if (!type.startsWith("image/")) {
+    throw new Error("Fallback image provider returned a non-image response.");
+  }
+
+  return {
+    image_base64: Buffer.from(await response.arrayBuffer()).toString("base64"),
+    provider: "fallback-image",
+    image_model: "flux"
+  };
+}
+
+async function generateImage(body) {
+  try {
+    return await generateGeminiImage(body);
+  } catch (geminiError) {
+    console.error("Gemini image generation unavailable:", geminiError);
+    return await generateFallbackImage(body);
+  }
 }
 
 export default async function apiHandler(req, res) {
