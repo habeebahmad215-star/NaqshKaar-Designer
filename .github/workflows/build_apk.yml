@@ -210,7 +210,9 @@ jobs:
           body="$(printf '%s\n' "$response" | sed '$d')"
           status="$(printf '%s\n' "$response" | tail -n 1)"
           echo "Production AI HTTP status: $status"
-          echo "$body" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("image_base64"), "Production AI returned no image_base64"; print("Production AI image generation confirmed: provider=%s model=%s" % (d.get("provider"), d.get("image_model")))'
+          echo "Production AI response (image payload omitted):"
+          echo "$body" | python3 -c 'import json,sys; d=json.load(sys.stdin); d.pop("image_base64", None); print(json.dumps(d, ensure_ascii=False))'
+          echo "$body" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("image_base64"), "Production AI returned no image_base64"; print("Production AI image generation confirmed: provider=%s model=%s" % (d.get("provider"), d.get("image_model")) )'
           test "$status" = "200"
 
       - name: Build APK
