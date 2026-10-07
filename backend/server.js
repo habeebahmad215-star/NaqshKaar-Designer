@@ -11,7 +11,7 @@ const OPENAI_IMAGE_FALLBACK_MODELS = String(process.env.OPENAI_IMAGE_FALLBACK_MO
 
 const GEMINI_IMAGE_MODEL = process.env.GEMINI_IMAGE_MODEL || "gemini-3.1-flash-image";
 const GEMINI_PRO_IMAGE_MODEL = process.env.GEMINI_PRO_IMAGE_MODEL || "gemini-3-pro-image";
-const GEMINI_IMAGE_SIZE = String(process.env.GEMINI_IMAGE_SIZE || "2K").toUpperCase();
+const GEMINI_IMAGE_SIZE = String(process.env.GEMINI_IMAGE_SIZE || "1K").toUpperCase();
 
 const FREE_IMAGE_FALLBACK =
   String(process.env.FREE_IMAGE_FALLBACK || "true").toLowerCase() !== "false";
@@ -197,7 +197,7 @@ async function generateGeminiImage(body, model = GEMINI_IMAGE_MODEL) {
       input: buildImagePrompt(body),
       response_format: {
         type: "image",
-        mime_type: "image/png",
+        mime_type: "image/jpeg",
         aspect_ratio: geminiAspectRatio(body.size),
         image_size: GEMINI_IMAGE_SIZE,
       },
@@ -224,7 +224,7 @@ async function editGeminiImage(body, instruction) {
       ],
       response_format: {
         type: "image",
-        mime_type: "image/png",
+        mime_type: "image/jpeg",
         image_size: GEMINI_IMAGE_SIZE,
       },
     }),
