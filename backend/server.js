@@ -72,7 +72,7 @@ async function providerFetch(baseUrl, path, options, authHeaders, label) {
       const error = new Error(
         data?.error?.message ||
         data?.error?.status ||
-        \`\${label} request failed (\${response.status}).\`,
+        `${label} request failed (${response.status}).`,
       );
       error.status = response.status;
       error.code = data?.error?.status || data?.error?.code || null;
@@ -81,7 +81,7 @@ async function providerFetch(baseUrl, path, options, authHeaders, label) {
     return data;
   } catch (error) {
     if (error?.name === "AbortError") {
-      throw new Error(\`\${label} request timed out. Please try again.\`);
+      throw new Error(`${label} request timed out. Please try again.`);
     }
     throw error;
   } finally {
@@ -95,7 +95,7 @@ async function openai(path, options = {}) {
     "https://api.openai.com",
     path,
     options,
-    {authorization: \`Bearer \${OPENAI_API_KEY}\`},
+    {authorization: `Bearer ${OPENAI_API_KEY}`},
     "OpenAI",
   );
 }
@@ -171,7 +171,7 @@ async function writeText(body) {
     headers: {"content-type": "application/json"},
     body: JSON.stringify({
       model: TEXT_MODEL,
-      input: \`Write polished \${language} copy for a graphic design. Preserve the user's meaning.\n\n\${prompt}\`,
+      input: `Write polished ${language} copy for a graphic design. Preserve the user's meaning.\n\n${prompt}`,
       max_output_tokens: 1200,
     }),
   });
@@ -184,9 +184,9 @@ function buildImagePrompt(body) {
   const prompt = String(body.prompt || "").trim();
   const style = String(body.style || "Premium");
   if (!prompt) throw new Error("Prompt is required.");
-  return \`\${style} professional graphic design for NaqshKaar Designer. \${prompt}
+  return `${style} professional graphic design for NaqshKaar Designer. ${prompt}
 
-Create a polished production-ready commercial composition with strong visual hierarchy, balanced spacing, premium lighting, depth, crisp details and clean edges. Use an elegant Urdu/Islamic/modern visual language when appropriate. Leave intentional clean space for editable headline text that NaqshKaar will overlay separately. Do not invent tiny unreadable paragraphs, fake logos, random gibberish or watermarks.\`;
+Create a polished production-ready commercial composition with strong visual hierarchy, balanced spacing, premium lighting, depth, crisp details and clean edges. Use an elegant Urdu/Islamic/modern visual language when appropriate. Leave intentional clean space for editable headline text that NaqshKaar will overlay separately. Do not invent tiny unreadable paragraphs, fake logos, random gibberish or watermarks.`;
 }
 
 async function generateGeminiImage(body, model = GEMINI_IMAGE_MODEL) {
@@ -244,10 +244,10 @@ async function generateFreeImage(body) {
   const style = String(body.style || "Premium");
   const [width, height] = imageSize(body.size);
   const fullPrompt =
-    \`\${style} professional graphic design for NaqshKaar Designer. \${prompt}. Clean composition, premium lighting, sharp details, no watermark.\`;
+    `${style} professional graphic design for NaqshKaar Designer. ${prompt}. Clean composition, premium lighting, sharp details, no watermark.`;
   const url =
     FREE_IMAGE_BASE + encodeURIComponent(fullPrompt) +
-    \`?model=flux&width=\${width}&height=\${height}&nologo=true&safe=true\`;
+    `?model=flux&width=${width}&height=${height}&nologo=true&safe=true`;
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FREE_IMAGE_TIMEOUT_MS);
@@ -256,7 +256,7 @@ async function generateFreeImage(body) {
       signal: controller.signal,
       headers: {"user-agent": "NaqshKaar-Designer/1.0"},
     });
-    if (!response.ok) throw new Error(\`Free image provider failed (\${response.status}).\`);
+    if (!response.ok) throw new Error(`Free image provider failed (${response.status}).`);
     const type = response.headers.get("content-type") || "";
     if (!type.startsWith("image/")) {
       throw new Error("Free image provider returned a non-image response.");
@@ -370,7 +370,7 @@ async function diagnostics() {
 
   if (GEMINI_API_KEY) {
     try {
-      const data = await gemini(\`/models/\${encodeURIComponent(GEMINI_IMAGE_MODEL)}\`);
+      const data = await gemini(`/models/${encodeURIComponent(GEMINI_IMAGE_MODEL)}`);
       return {
         ok: true,
         provider: "gemini",
@@ -395,7 +395,7 @@ async function diagnostics() {
     ];
     for (const model of models) {
       try {
-        const data = await openai(\`/v1/models/\${encodeURIComponent(model)}\`);
+        const data = await openai(`/v1/models/${encodeURIComponent(model)}`);
         return {
           ok: true,
           provider: "openai",
@@ -467,13 +467,13 @@ async function route(path, body) {
   if (path === "/magic-remove") {
     return editImage(
       body,
-      \`Remove the requested object or area while reconstructing the surrounding background naturally. \${String(body.instruction || "")}\`,
+      `Remove the requested object or area while reconstructing the surrounding background naturally. ${String(body.instruction || "")}`,
     );
   }
   if (path === "/enhance") {
     return editImage(
       body,
-      \`Enhance this image professionally: improve clarity, lighting, sharpness and fine details while preserving the original composition, text and subject. \${String(body.instruction || "")}\`,
+      `Enhance this image professionally: improve clarity, lighting, sharpness and fine details while preserving the original composition, text and subject. ${String(body.instruction || "")}`,
     );
   }
   const error = new Error("Not found.");
@@ -508,5 +508,5 @@ export async function handler(req, res) {
 
 if (process.env.VERCEL !== "1") {
   const server = http.createServer(handler);
-  server.listen(PORT, () => console.log(\`NaqshKaar AI gateway listening on :\${PORT}\`));
+  server.listen(PORT, () => console.log(`NaqshKaar AI gateway listening on :${PORT}`));
 }
