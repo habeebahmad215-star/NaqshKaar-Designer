@@ -92,9 +92,12 @@ async function generateFallbackImage(body) {
   if (size === "1536x1024") { width = 1536; height = 1024; }
   if (size === "1024x1536") { width = 1024; height = 1536; }
 
+  // The legacy Pollinations image endpoint is still the practical keyless
+  // fallback. Do not request nologo: anonymous requests can be rejected when
+  // asking for paid/no-logo output. Keep the request otherwise simple.
   const url = "https://image.pollinations.ai/prompt/" +
     encodeURIComponent(prompt) +
-    "?model=flux&width=" + width + "&height=" + height + "&nologo=true&safe=true";
+    "?model=flux&width=" + width + "&height=" + height + "&safe=true";
 
   const response = await fetch(url, {
     headers: {"user-agent": "NaqshKaar-Designer/1.0"}
