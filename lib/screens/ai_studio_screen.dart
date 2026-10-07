@@ -51,9 +51,19 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       });
     } catch (error) {
       if (!mounted) return;
+      final message = error.toString().replaceFirst('Exception: ', '').trim();
       setState(() { _generating = false; _status = 'AI unavailable'; });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('AI generation failed. Please try again.')),
+        SnackBar(
+          duration: const Duration(seconds: 6),
+          content: Text(
+            message.isEmpty
+                ? 'AI generation failed. Please try again.'
+                : 'AI generation failed: $message',
+            maxLines: 5,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
       );
     }
   }
