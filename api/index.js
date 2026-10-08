@@ -13,6 +13,8 @@ function send(res, status, body) {
 function ratioFor(size) {
   if (size === "1536x1024") return "16:9";
   if (size === "1024x1536") return "9:16";
+  if (size === "1080x1350") return "4:5";
+  if (size === "1350x1080") return "5:4";
   return "1:1";
 }
 
@@ -222,7 +224,7 @@ async function generateSmartTemplate(body, reason) {
 
 async function generateImage(body) {
   const primary = process.env.GEMINI_IMAGE_MODEL || "gemini-3.1-flash-image";
-  const models = [primary, "gemini-3.1-flash-lite-image"]
+  const models = [primary, "gemini-3-pro-image", "gemini-3.1-flash-lite-image"]
     .filter((model, index, list) => model && list.indexOf(model) === index);
 
   let lastError;
@@ -235,6 +237,50 @@ async function generateImage(body) {
         lastError = error;
         console.error("Gemini image model unavailable:", model, error);
       }
+    }
+  }
+
+  const openaiKey = process.env.OPENAI_API_KEY;
+  const openaiModel = process.env.OPENAI_IMAGE_MODEL || "gpt-image-1";
+  if (openaiKey) {
+    try {
+      const response = await fetch("https://api.openai.com/v1/images/generations", {
+        method: "POST",
+        headers: {
+          "authorization": "Bearer " + openaiKey,
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          model: openaiModel,
+          prompt: promptFor(body),
+          size: ["1024x1024", "1024x1536", "1536x1024"].includes(String(body && body.size))
+            ? String(body.size)
+            : "1024x1024",
+          response_format: "b64_json"
+        })
+      });
+      const text = await response.text();
+      let data;
+      try { data = JSON.parse(text); } catch (_) { data = {}; }
+      if (!response.ok) {
+        throw new Error(
+          data && data.error && data.error.message
+            ? data.error.message
+            : "OpenAI image request failed (HTTP " + response.status + ")."
+        );
+      }
+      const encoded = data && Array.isArray(data.data) && data.data[0] && data.data[0].b64_json;
+      if (typeof encoded !== "string" || !encoded) {
+        throw new Error("OpenAI returned no image data.");
+      }
+      return {
+        image_base64: encoded,
+        provider: "openai",
+        image_model: openaiModel
+      };
+    } catch (error) {
+      lastError = error;
+      console.error("OpenAI image provider unavailable:", error);
     }
   }
 
@@ -265,9 +311,12 @@ export default async function apiHandler(req, res) {
       const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
       return send(res, 200, {
         ok: true,
-        provider: key ? "gemini + smart-template-fallback" : "smart-template-fallback",
+        provider: key
+          ? "gemini → openai → smart-template-fallback"
+          : (process.env.OPENAI_API_KEY ? "openai → smart-template-fallback" : "smart-template-fallback"),
         image_model: process.env.GEMINI_IMAGE_MODEL || "gemini-3.1-flash-image",
-        failover_model: "gemini-3.1-flash-lite-image",
+        failover_model: "gemini-3-pro-image",
+        openai_configured: Boolean(process.env.OPENAI_API_KEY),
         key_configured: Boolean(key),
         fallback_available: true
       });
