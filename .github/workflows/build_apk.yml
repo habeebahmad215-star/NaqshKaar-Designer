@@ -218,7 +218,7 @@ jobs:
           echo "Production image HTTP status: $status"
           echo "Production image response (payload omitted):"
           echo "$body" | python3 -c 'import json,sys; d=json.load(sys.stdin); d.pop("image_base64", None); print(json.dumps(d, ensure_ascii=False))'
-          echo "$body" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("image_base64"), "Production gateway returned no image_base64"; assert d.get("provider") in ("gemini","smart-template-fallback"), "Unexpected image provider"; print("Production image generation confirmed: provider=%s model=%s" % (d.get("provider"), d.get("image_model")) )'
+          echo "$body" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("image_base64"), "Production gateway returned no image_base64"; assert d.get("provider") in ("gemini","openai","smart-template-fallback"), "Unexpected image provider"; print("Production image generation confirmed: provider=%s model=%s" % (d.get("provider"), d.get("image_model")) )'
           test "$status" = "200"
 
       - name: Build APK
