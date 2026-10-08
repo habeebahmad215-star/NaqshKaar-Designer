@@ -30,7 +30,8 @@ class AiDesignService {
   }) async {
     final size = switch (ratio) {
       '16:9' => '1536x1024',
-      '9:16' || '4:5' => '1024x1536',
+      '9:16' => '1024x1536',
+      '4:5' => '1080x1350',
       _ => '1024x1024',
     };
     final bytes = await _service.generateImage(
