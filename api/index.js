@@ -91,7 +91,9 @@ async function requestGeminiImage(body, model) {
   return {
     image_base64: extractImage(data),
     provider: "gemini",
-    image_model: model
+    image_model: model,
+    ai_generated: true,
+    provider_message: "Real Gemini image generated."
   };
 }
 
@@ -216,9 +218,10 @@ async function generateSmartTemplate(body, reason) {
     image_base64: smartTemplatePng(body),
     provider: "smart-template-fallback",
     image_model: "NaqshKaar Premium Template Engine",
+    ai_generated: false,
     provider_message: reason
-      ? "Gemini unavailable; premium local template fallback used."
-      : "Premium template engine ready.",
+      ? "AI providers unavailable; local premium template preview used."
+      : "Local premium template preview used.",
   };
 }
 
@@ -276,7 +279,9 @@ async function generateImage(body) {
       return {
         image_base64: encoded,
         provider: "openai",
-        image_model: openaiModel
+        image_model: openaiModel,
+        ai_generated: true,
+        provider_message: "Real OpenAI image generated."
       };
     } catch (error) {
       lastError = error;
