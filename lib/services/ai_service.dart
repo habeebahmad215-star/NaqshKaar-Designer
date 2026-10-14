@@ -20,8 +20,10 @@ class AiService {
   final List<http.Client> _clients;
   final String _apiKey;
   String _lastProvider = 'AI';
+  bool _lastAiGenerated = true;
 
   String get lastProvider => _lastProvider;
+  bool get lastAiGenerated => _lastAiGenerated;
 
   static const String _productionGateway =
       'https://naqsh-kaar-designer-9g3r.vercel.app/api';
@@ -147,6 +149,10 @@ class AiService {
     }
     final provider = decoded['provider'];
     final model = decoded['image_model'];
+    final aiGenerated = decoded['ai_generated'];
+    _lastAiGenerated = aiGenerated is bool
+        ? aiGenerated
+        : provider is! String || provider != 'smart-template-fallback';
     if (provider is String && provider.isNotEmpty) {
       _lastProvider = model is String && model.isNotEmpty
           ? '$provider • $model'
