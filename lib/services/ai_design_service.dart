@@ -7,6 +7,7 @@ class AiDesignPlan {
   final String style;
   final List<int> gradient;
   final String? providerMessage;
+  final bool aiGenerated;
   final Uint8List? imageBytes;
 
   const AiDesignPlan({
@@ -14,6 +15,7 @@ class AiDesignPlan {
     required this.style,
     required this.gradient,
     this.providerMessage,
+    this.aiGenerated = true,
     this.imageBytes,
   });
 }
@@ -44,6 +46,7 @@ class AiDesignService {
       style: style,
       gradient: const [0xFF10172D, 0xFF4C1D95],
       providerMessage: _service.lastProvider == 'AI' ? 'AI artwork ready' : '${_service.lastProvider} artwork ready',
+      aiGenerated: _service.lastAiGenerated,
       imageBytes: bytes,
     );
   }
