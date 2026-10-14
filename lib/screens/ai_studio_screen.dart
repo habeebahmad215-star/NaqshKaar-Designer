@@ -283,11 +283,30 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22), border: Border.all(color: const Color(0xFFE5E7EB))),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
-        const Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A), size: 19),
+        Icon(
+          _plan?.aiGenerated == true
+              ? Icons.verified_rounded
+              : Icons.info_outline_rounded,
+          color: _plan?.aiGenerated == true
+              ? const Color(0xFF16A34A)
+              : const Color(0xFFD97706),
+          size: 19,
+        ),
         const SizedBox(width: 7),
-        Text('AI design ready • $_status', style: const TextStyle(fontWeight: FontWeight.w900, color: _ink)),
-      ]),
-      const SizedBox(height: 12),
+        Expanded(
+          child: Text(
+            _plan?.aiGenerated == true
+                ? 'REAL AI design ready • $_status'
+                : 'PREVIEW only • $_status',
+            style: TextStyle(
+              fontWeight: FontWeight.w900,
+              color: _plan?.aiGenerated == true
+                  ? const Color(0xFF166534)
+                  : const Color(0xFF92400E),
+            ),
+          ),
+        ),
+      ]),      const SizedBox(height: 12),
       AspectRatio(
         aspectRatio: _ratio == '16:9' ? 16 / 9 : _ratio == '9:16' ? 9 / 16 : _ratio == '4:5' ? 4 / 5 : 1,
         child: Container(
